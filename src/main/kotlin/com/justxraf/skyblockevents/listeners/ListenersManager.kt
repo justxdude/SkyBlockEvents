@@ -6,6 +6,7 @@ import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.listeners.nether.QuestNPCInteractListener
 import com.justxraf.skyblockevents.listeners.nether.entities.EntityDamageListener
 import com.justxraf.skyblockevents.listeners.nether.entities.EntityDeathListener
+import com.justxraf.skyblockevents.listeners.nether.entities.NaturalEntitySpawnListener
 import com.justxraf.skyblockevents.listeners.portals.PortalBreakListener
 import com.justxraf.skyblockevents.listeners.portals.PortalJoinListener
 import org.bukkit.plugin.java.JavaPlugin
@@ -28,7 +29,8 @@ class ListenersManager(private val plugin: JavaPlugin) {
             // entity
             EntityDamageListener(),
             EntityDeathListener(),
-
+            NaturalEntitySpawnListener(),
+            
         )
     }
     companion object {

@@ -53,7 +53,12 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
                     "/event setquestnpc, " +
                     "/event addquest <id>, " +
                     "/event addtodescription <tekst>, " +
-                    "/event cleardescription")
+                    "/event cleardescription, " +
+                    "/event setentityspawnpoint <EntityType> - Ustawia spawnpoint dla wybranego typu potwora, " +
+                    "/event seteventportal - Ustawia portal który jest w świecie wydarzenia, " +
+                    "/event getregenerativeblock <materiał> - Daje Ci regenerujący się blok, " +
+                    "/event getregenerativeblockremover - Daje Ci narzędzie do usuwania regenerujących się bloków, " +
+                    "/event removeentityspawnpoint - Usuwa spawnpoint w lokacji w której obecnie przebywasz.")
             return false
         }
         if(sessionCommands.contains(args[0].uppercase()) && !eventSession.contains(player.uniqueId)) {
