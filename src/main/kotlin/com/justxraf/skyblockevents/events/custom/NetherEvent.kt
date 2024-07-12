@@ -86,16 +86,7 @@ class NetherEvent(
 
             }
         }.runTaskTimer(components.plugin, 0, 20 * 5) // Check every 5 seconds.
-
-        // get spawnpoint by cuboid - then it gets another map to remove the entities from it and scheduler checks whether there is enough
-        // entities spawned in the maps
-
         /*
-        TODO Start a scheduler so it starts to check:
-
-        - Amount of players in the events' world:
-          - If there is no players - It should remove all entities,
-
 
           TODO Checks: On entity death (remove from the map etc.), on entity void fall, on entity damage another entity
           TODO:
@@ -116,7 +107,7 @@ class NetherEvent(
 
         shouldSpawnEntity()
     }
-    private fun removeEntity(uuid: UUID) { // When the entity is killed.
+    fun removeEntity(uuid: UUID) { // When the entity is killed.
         spawnPointsEntities.forEach { (key, entityMap) ->
             entityMap.entries.removeIf { it.key == uuid }
             if (entityMap.isEmpty()) { spawnPointsEntities.entries.clear() }
