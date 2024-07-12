@@ -2,6 +2,8 @@ package com.justxraf.skyblockevents.events.custom
 
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxdude.networkapi.util.Utils.toDate
+import com.justxraf.questscore.component.ComponentsManager
+import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
 import com.justxraf.skyblockevents.util.pasteSchematic
@@ -17,6 +19,8 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
+import org.bukkit.scheduler.BukkitRunnable
+import org.bukkit.scheduler.BukkitTask
 import java.util.*
 
 
@@ -45,12 +49,18 @@ class NetherEvent(
     var spawnPointsCuboid: MutableMap<Int, Pair<Location, Location>> = mutableMapOf(),
     // For checking the number of entities alive
     // Int = ID, MutableMap<EntityType, UUID>
-    var spawnPointsEntities: MutableMap<Int, MutableMap<EntityType, UUID>> = mutableMapOf(),
+    var spawnPointsEntities: MutableMap<Int, MutableMap<UUID, EntityType>> = mutableMapOf(),
     var entityTypeForSpawnPoint: MutableMap<Int, EntityType> = mutableMapOf(),
 
-    var regenerativeBlocks: MutableMap<Location, Material> = mutableMapOf()
+    var regenerativeBlocks: MutableMap<Location, Material> = mutableMapOf(),
+    private var task: BukkitTask? = null,
 
-) : Event(name, uniqueId, eventType, startedAt, endsAt, world, description, spawnLocation, portalLocation, portalCuboid, eventPortalLocation, eventPortalCuboid, questNPCLocation, questNPCUniqueId, quests, playersWhoJoined) {
+    ) : Event(name, uniqueId, eventType, startedAt, endsAt, world, description, spawnLocation, portalLocation, portalCuboid, eventPortalLocation, eventPortalCuboid, questNPCLocation, questNPCUniqueId, quests, playersWhoJoined) {
+    @delegate:Transient
+    private val components by lazy { ComponentsManager.instance }
+
+    // TODO Make a listener to listen to entities spawning naturally and block it.
+
     override fun start() {
         super.start()
 
@@ -65,31 +75,51 @@ class NetherEvent(
         }
         spawnQuestNPC()
 
+        task = object : BukkitRunnable() {
+            override fun run() {
+                val playerInTheEvent = Bukkit.getOnlinePlayers().filter { it.world == spawnLocation.world }.size
+                if(playerInTheEvent == 0) {
+                    removeEntities()
+                    return
+                }
+                checkEntities()
+
+            }
+        }.runTaskTimer(components.plugin, 0, 20 * 5) // Check every 5 seconds.
+
         // get spawnpoint by cuboid - then it gets another map to remove the entities from it and scheduler checks whether there is enough
         // entities spawned in the maps
 
         /*
         TODO Start a scheduler so it starts to check:
+
         - Amount of players in the events' world:
           - If there is no players - It should remove all entities,
 
+
+          TODO Checks: On entity death (remove from the map etc.), on entity void fall, on entity damage another entity
+          TODO:
+           Do the minerals "respawn"
+           mineral is mined > becomes a bedrock for 5 seconds and changes back to the original form.
          */
     }
-    // TODO Make a listener to listen to entities spawning naturally and block it.
+    override fun end() {
+        super.end()
+        removeNPC()
+        removeHologram()
+        task?.cancel()
+    }
     private fun checkEntities() {
         val world = spawnLocation.world ?: return
         val deadEntities = world.entities.filter { it.isDead }.map { it.uniqueId }
         deadEntities.forEach { removeEntity(it) }
+
+        shouldSpawnEntity()
     }
     private fun removeEntity(uuid: UUID) { // When the entity is killed.
         spawnPointsEntities.forEach { (key, entityMap) ->
-            // Remove entries in the inner map that match the UUID
-            entityMap.entries.removeIf { it.value == uuid }
-
-            // If the inner map is empty after removals, remove the key from the outer map
-            if (entityMap.isEmpty()) {
-                spawnPointsEntities.remove(key)
-            }
+            entityMap.entries.removeIf { it.key == uuid }
+            if (entityMap.isEmpty()) { spawnPointsEntities.entries.clear() }
         }
     }
     private fun removeEntities() { // When there are no players
@@ -101,10 +131,38 @@ class NetherEvent(
         }
         spawnPointsEntities.entries.clear()
     }
-    override fun end() {
-        super.end()
-        removeNPC()
-        removeHologram()
+    private fun spawnEntityInCuboid(mapID: Int) {
+        val entityType = entityTypeForSpawnPoint[mapID] ?: return // EntityType
+        val cuboid = spawnPointsCuboid[mapID] ?: return // Pair <Location, Location>
+
+        val world = spawnLocation.world ?: return
+        val entity = world.spawnEntity(getRandomLocationWithinCuboid(cuboid), entityType)
+
+        if (spawnPointsEntities[mapID] == null) {
+            spawnPointsEntities[mapID] = mutableMapOf()
+        }
+        spawnPointsEntities[mapID]?.set(entity.uniqueId, entityType)
+    }
+    private fun shouldSpawnEntity() {
+        spawnPointsEntities.forEach { (key, entityMap) ->
+            if(entityMap.size > 5) return@forEach
+            spawnEntityInCuboid(key)
+        }
+    }
+    private fun getRandomLocationWithinCuboid(cuboid: Pair<Location, Location>): Location {
+        val (loc1, loc2) = cuboid
+        val world = loc1.world
+
+        val minX = minOf(loc1.x, loc2.x)
+        val maxX = maxOf(loc1.x, loc2.x)
+        val minZ = minOf(loc1.z, loc2.z)
+        val maxZ = maxOf(loc1.z, loc2.z)
+
+        val randomX = Random().nextDouble(minX, maxX)
+        val randomZ = Random().nextDouble(minZ, maxZ)
+        val randomY = loc1.y
+
+        return Location(world, randomX, randomY, randomZ)
     }
 
     private fun spawnQuestNPC() {
