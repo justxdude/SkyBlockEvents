@@ -6,6 +6,7 @@ import com.justxraf.questscore.component.ComponentsManager
 import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
+import com.justxraf.skyblockevents.util.isInPortal
 import com.justxraf.skyblockevents.util.pasteSchematic
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
@@ -17,6 +18,7 @@ import net.citizensnpcs.api.npc.NPC
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.block.data.BlockData
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
@@ -46,20 +48,21 @@ class NetherEvent(
     override var playersWhoJoined: MutableList<UUID> = mutableListOf(),
 
     // For spawning entities in random places in the cuboid
-    var spawnPointsCuboid: MutableMap<Int, Pair<Location, Location>> = mutableMapOf(),
+    override var spawnPointsCuboid: MutableMap<Int, Pair<Location, Location>>? = mutableMapOf(),
     // For checking the number of entities alive
     // Int = ID, MutableMap<EntityType, UUID>
-    var spawnPointsEntities: MutableMap<Int, MutableMap<UUID, EntityType>> = mutableMapOf(),
-    var entityTypeForSpawnPoint: MutableMap<Int, EntityType> = mutableMapOf(),
+    var spawnPointsEntities: MutableMap<Int, MutableMap<UUID, EntityType>>? = mutableMapOf(),
+    override var entityTypeForSpawnPoint: MutableMap<Int, EntityType>? = mutableMapOf(),
 
-    var regenerativeBlocks: MutableMap<Location, Material> = mutableMapOf(),
+    override var regenerativeBlocks: MutableMap<Location, Material>? = mutableMapOf(),
+
+    // Live event
+    var brokenBlocks: MutableMap<Location, Pair<Long, Material>> = mutableMapOf(),
     private var task: BukkitTask? = null,
 
     ) : Event(name, uniqueId, eventType, startedAt, endsAt, world, description, spawnLocation, portalLocation, portalCuboid, eventPortalLocation, eventPortalCuboid, questNPCLocation, questNPCUniqueId, quests, playersWhoJoined) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
-
-    // TODO Make a listener to listen to entities spawning naturally and block it.
 
     override fun start() {
         super.start()
@@ -77,8 +80,8 @@ class NetherEvent(
 
         task = object : BukkitRunnable() {
             override fun run() {
-                val playerInTheEvent = Bukkit.getOnlinePlayers().filter { it.world == spawnLocation.world }.size
-                if(playerInTheEvent == 0) {
+                val playersInTheEvent = Bukkit.getOnlinePlayers().filter { it.world == spawnLocation.world }.size
+                if(playersInTheEvent == 0) {
                     removeEntities()
                     return
                 }
@@ -86,12 +89,16 @@ class NetherEvent(
 
             }
         }.runTaskTimer(components.plugin, 0, 20 * 5) // Check every 5 seconds.
+        Bukkit.getScheduler().runTaskTimer(components.plugin, Runnable {
+            checkBlocks()
+        }, 20, 20)
         /*
 
           TODO Checks: On entity death (remove from the map etc.), on entity void fall, on entity damage another entity
           TODO:
            Do the minerals "respawn"
            mineral is mined > becomes a bedrock for 5 seconds and changes back to the original form.
+           make a scheduler to check for broken blocks.
          */
     }
     override fun end() {
@@ -99,6 +106,24 @@ class NetherEvent(
         removeNPC()
         removeHologram()
         task?.cancel()
+    }
+    fun breakRegenerativeBlockAt(location: Location) {
+        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
+        val material = regenerativeBlocks!![location] ?: return
+        if(brokenBlocks == null) brokenBlocks = mutableMapOf()
+        brokenBlocks[location] = Pair(System.currentTimeMillis(), material)
+    }
+    fun isRegenerativeBlock(location: Location): Boolean {
+        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
+        return regenerativeBlocks!!.containsKey(location)
+    }
+    private fun checkBlocks() {
+        val currentTime = System.currentTimeMillis()
+        val world = spawnLocation.world ?: return
+        brokenBlocks.filter { (_, value) -> currentTime - value.first > 6000 && value.second == Material.AIR }
+            .forEach { (key, value) ->
+                world.getBlockAt(key).type = value.second
+            }
     }
     private fun checkEntities() {
         val world = spawnLocation.world ?: return
@@ -108,9 +133,14 @@ class NetherEvent(
         shouldSpawnEntity()
     }
     fun removeEntity(uuid: UUID) { // When the entity is killed.
-        spawnPointsEntities.forEach { (key, entityMap) ->
-            entityMap.entries.removeIf { it.key == uuid }
-            if (entityMap.isEmpty()) { spawnPointsEntities.entries.clear() }
+        if(spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
+        spawnPointsEntities?.let {
+            it.forEach { (key, entityMap) ->
+                entityMap.entries.removeIf { it.key == uuid }
+                if (entityMap.isEmpty()) {
+                    spawnPointsEntities?.entries?.clear()
+                }
+            }
         }
     }
     private fun removeEntities() { // When there are no players
@@ -120,24 +150,31 @@ class NetherEvent(
             if(it is Player) return@forEach
             it.remove()
         }
-        spawnPointsEntities.entries.clear()
+        if(spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
+        spawnPointsEntities?.entries?.clear()
     }
     private fun spawnEntityInCuboid(mapID: Int) {
-        val entityType = entityTypeForSpawnPoint[mapID] ?: return // EntityType
-        val cuboid = spawnPointsCuboid[mapID] ?: return // Pair <Location, Location>
+        if(entityTypeForSpawnPoint == null) entityTypeForSpawnPoint = mutableMapOf()
+        val entityType = entityTypeForSpawnPoint!![mapID] ?: return // EntityType
+        if(spawnPointsCuboid == null) spawnPointsCuboid = mutableMapOf()
+        val cuboid = spawnPointsCuboid!![mapID] ?: return // Pair <Location, Location>
 
         val world = spawnLocation.world ?: return
         val entity = world.spawnEntity(getRandomLocationWithinCuboid(cuboid), entityType)
 
-        if (spawnPointsEntities[mapID] == null) {
-            spawnPointsEntities[mapID] = mutableMapOf()
+        if(spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
+        if (spawnPointsEntities!![mapID] == null) {
+            spawnPointsEntities!![mapID] = mutableMapOf()
         }
-        spawnPointsEntities[mapID]?.set(entity.uniqueId, entityType)
+        spawnPointsEntities!![mapID]?.set(entity.uniqueId, entityType)
     }
     private fun shouldSpawnEntity() {
-        spawnPointsEntities.forEach { (key, entityMap) ->
-            if(entityMap.size > 5) return@forEach
-            spawnEntityInCuboid(key)
+        if(spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
+        spawnPointsEntities?.let {
+            it.forEach { (key, entityMap) ->
+                if (entityMap.size > 5) return@forEach
+                spawnEntityInCuboid(key)
+            }
         }
     }
     private fun getRandomLocationWithinCuboid(cuboid: Pair<Location, Location>): Location {
@@ -155,7 +192,15 @@ class NetherEvent(
 
         return Location(world, randomX, randomY, randomZ)
     }
-
+    private fun getEntityCuboid(location: Location): Int? {
+        if(spawnPointsCuboid == null) {
+            spawnPointsCuboid = mutableMapOf()
+            return null
+        }
+        return spawnPointsCuboid?.entries?.firstNotNullOfOrNull { (key, pair) ->
+            if (isInPortal(location, pair.first, pair.second)) key else null
+        }
+    }
     private fun spawnQuestNPC() {
         val npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "&cDiabeł")
         npc.spawn(questNPCLocation)

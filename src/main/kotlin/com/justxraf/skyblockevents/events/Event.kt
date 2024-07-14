@@ -12,6 +12,8 @@ import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.regions.CuboidRegion
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import java.util.*
 
@@ -34,7 +36,13 @@ open class Event(
     open var questNPCLocation: Location? = null,
     open var questNPCUniqueId: Int? = null,
     open var quests: MutableList<Int>? = null,
-    open val playersWhoJoined: MutableList<UUID> = mutableListOf()
+    open val playersWhoJoined: MutableList<UUID> = mutableListOf(),
+
+    // For spawning entities in random places in the cuboid
+    open var spawnPointsCuboid: MutableMap<Int, Pair<Location, Location>>? = null,
+    open var entityTypeForSpawnPoint: MutableMap<Int, EntityType>? = null,
+
+    open var regenerativeBlocks: MutableMap<Location, Material>? = null,
 ) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
