@@ -3,6 +3,7 @@ package com.justxraf.skyblockevents.events
 import com.google.gson.annotations.SerializedName
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.questscore.users.UsersManager
+import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.util.getEndOfDayMillis
@@ -20,10 +21,13 @@ import java.util.*
 open class Event(
     open var name: String,
     open var uniqueId: Int,
+
     open var eventType: EventType,
     open var startedAt: Long,
+
     open var endsAt: Long,
     open var world: String,
+
     open var description: MutableList<String>,
     open var spawnLocation: Location,
 
@@ -34,7 +38,7 @@ open class Event(
     open var eventPortalCuboid: Pair<Location, Location>? = null,
 
     open var questNPCLocation: Location? = null,
-    open var questNPCUniqueId: Int? = null,
+
     open var quests: MutableList<Int>? = null,
     open val playersWhoJoined: MutableList<UUID> = mutableListOf(),
 
@@ -46,7 +50,9 @@ open class Event(
 ) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
-
+    open fun reload() {
+        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable { println("hi") }, 200)
+    }
     open fun start() {
         playersWhoJoined.clear()
         clearPlayersQuests()
@@ -57,7 +63,8 @@ open class Event(
     }
     open fun end() {
         clearPlayersQuests()
-        removePortal()
+        if(portalCuboid != null && portalLocation != null) removePortal(portalLocation!!, portalCuboid!!)
+        if(eventPortalCuboid != null && eventPortalLocation != null) removePortal(eventPortalLocation!!, eventPortalCuboid!!)
     }
     private fun clearPlayersQuests() { // Removes the same quests which were finished previously.
         val availableQuests = quests ?: return
@@ -73,12 +80,10 @@ open class Event(
             keysToRemove.forEach { questUser.finishedQuests.remove(it) }
         }
     }
-    private fun removePortal() {
-        if(portalCuboid == null) return
-
-        val pos1 = portalCuboid?.first!!
-        val pos2 = portalCuboid?.second!!
-        val world = BukkitAdapter.adapt(portalLocation!!.world)
+    private fun removePortal(location: Location, cuboid: Pair<Location, Location>) {
+        val pos1 = cuboid.first
+        val pos2 = cuboid.second
+        val world = BukkitAdapter.adapt(location.world)
         val region =
             CuboidRegion(world, BlockVector3.at(pos1.x, pos1.y, pos1.z), BlockVector3.at(pos2.x, pos2.y, pos2.z))
 
@@ -99,6 +104,7 @@ open class Event(
     }
     open fun addQuest(id: Int) {
         if(quests == null) quests = mutableListOf()
+        if(quests!!.contains(id)) return
         quests!!.add(id)
     }
     fun toData() = EventData(
@@ -112,13 +118,13 @@ open class Event(
         spawnLocation,
         portalLocation,
         portalCuboid,
-
         eventPortalLocation,
         eventPortalCuboid,
-
         questNPCLocation,
-        questNPCUniqueId,
         quests,
-        playersWhoJoined
+        playersWhoJoined,
+        spawnPointsCuboid,
+        entityTypeForSpawnPoint,
+        regenerativeBlocks
     )
 }

@@ -5,50 +5,61 @@ import com.justxraf.questscore.objectives.objective.NPCInteractionObjective
 import com.justxraf.questscore.quests.QuestsManager
 import com.justxraf.questscore.users.QuestUser
 import com.justxraf.questscore.users.UsersManager
-import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.EventsManager
-import net.citizensnpcs.api.CitizensAPI
+import com.justxraf.skyblockevents.listeners.ListenersManager
+import de.oliver.fancynpcs.api.events.NpcInteractEvent
+import de.oliver.fancynpcs.api.events.NpcInteractEvent.InteractionType
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.scheduler.BukkitRunnable
-import java.util.*
 
 class QuestNPCInteractListener : Listener {
     private val questUserManager = UsersManager.instance
     private val questsManager = QuestsManager.instance
 
     private val eventsManager = EventsManager.instance
-    private val timeChecker: MutableMap<UUID, Long> = mutableMapOf()
+    private val listenersManager = ListenersManager.instance
 
-    private val alreadySpeakingToNPC: MutableList<UUID> = mutableListOf()
     @EventHandler
-    fun onEntityInteract(event: PlayerInteractEntityEvent) {
-        val entity = event.rightClicked
-
-        if(!CitizensAPI.getNPCRegistry().isNPC(entity)) return
-        val npc = CitizensAPI.getNPCRegistry().getNPC(entity)
-
+    fun onEntityInteract(event: NpcInteractEvent) {
         val currentEvent = eventsManager.currentEvent
-        if(currentEvent.questNPCUniqueId != npc.id) return
-
         val player = event.player
-
-        if(!shouldProcessNPCInteraction(player.uniqueId)) return
-        if(alreadySpeakingToNPC.contains(player.uniqueId)) return
-
-        val eventQuests = currentEvent.quests ?: return
-        val questUser = questUserManager.getUser(event.player.uniqueId) ?: return
-
+        println("test1")
+        val npcData = event.npc.data
+        if(npcData.name != "${currentEvent.uniqueId}_event_npc") return
+        println("test2")
+        if(!listenersManager.doChecks(player.location, currentEvent.spawnLocation)) return
+        println("test3")
+        if(event.interactionType != InteractionType.RIGHT_CLICK) return
+        println("test4")
+        var eventQuests = currentEvent.quests
+        // attempt to retrieve quests from EventData
+        if(eventQuests == null) {
+            val eventData = eventsManager.events[currentEvent.uniqueId] ?: return
+            val questsCopy = eventData.quests?.toList()
+            println("before adding quests")
+            questsCopy?.forEach {
+                println("added a quest")
+                currentEvent.addQuest(it)
+            }
+            println("after adding quests")
+            eventQuests = currentEvent.quests
+        }
+        if(eventQuests.isNullOrEmpty()) {
+            println("Quests are empty again")
+            return
+        }
+        println("test5")
+        val questUser = questUserManager.getUser(player.uniqueId) ?: return
+        println("test6")
         if(questUser.activeQuests.any { eventQuests.contains(it.uniqueId) }) {
-            // Check if the objective is related to speaking to the npc
-            // Check if the objective is related to speaking to this npc
+            // Check if the goal is related to speaking to the npc
             val objective = questUser
-                .findFirstObjective(NPCInteractionObjective::class.java) { it.entityId == npc.id }
+                .findFirstObjective(NPCInteractionObjective::class.java) { it.entityId == npcData.id }
             if(objective == null) {
-                val messages = listOf("&cCo Ty robisz? Ukończ najpierw zadania!",
+                val messages = listOf("&cCo Ty robisz? Ukończ najpierw zadanie!",
                     "&cZagadaj do mnie jak ukończysz zadania, głupcze",
                     "&cIgrasz z ogniem xD")
                 player.sendColoured(messages.random())
@@ -88,15 +99,13 @@ class QuestNPCInteractListener : Listener {
     private fun sendTimedMessages(messages: Array<String>, questUser: QuestUser, player: Player, number: Int, description: String) {
         var counter = 0
         val messagesSize = messages.size
-        alreadySpeakingToNPC.add(player.uniqueId)
 
         object: BukkitRunnable() {
             override fun run() {
                 if(counter > (messagesSize - 1)) {
-                    questUser.giveActiveQuest(questsManager.getQuestBy(number) ?: return, false)
+                    questUser.giveActiveQuest(questsManager.getQuestBy(number) ?: return, true)
 
                     player.sendColoured(description)
-                    alreadySpeakingToNPC.remove(player.uniqueId)
 
                     cancel()
                     return
@@ -105,16 +114,5 @@ class QuestNPCInteractListener : Listener {
                 counter++
             }
         }.runTaskTimer(ComponentsManager.instance.plugin, 0, 30L)
-    }
-    private fun shouldProcessNPCInteraction(uniqueId: UUID): Boolean {
-        if(timeChecker[uniqueId] == null) {
-            timeChecker[uniqueId] = System.currentTimeMillis()
-            return true
-        }
-        if(System.currentTimeMillis() - timeChecker[uniqueId]!! > 3000) {
-            timeChecker[uniqueId] = System.currentTimeMillis()
-            return true
-        }
-        return false
     }
 }

@@ -67,7 +67,7 @@ private fun getPosition(vector3: BlockVector3, loc: Location): Location {
         vector3.y.plus(loc.y),
         vector3.z.plus(loc.z))
 }
-fun isInPortal(location: Location, pos1: Location, pos2: Location): Boolean {
+fun isInCuboid(location: Location, pos1: Location, pos2: Location): Boolean {
     val tolerance = 0.5
     val (x1, y1, z1) = arrayOf(pos1.x, pos1.y, pos1.z - 1.0)
     val (x2, y2, z2) = arrayOf(pos2.x, pos2.y, pos2.z - 1.0)

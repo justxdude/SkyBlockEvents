@@ -3,7 +3,7 @@ package com.justxraf.skyblockevents.events.data
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
 import com.justxraf.skyblockevents.events.custom.NetherEvent
-import com.justxraf.skyblockevents.util.isInPortal
+import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.EntityType
@@ -26,7 +26,7 @@ data class EventData(
     var eventPortalCuboid: Pair<Location, Location>? = null,
 
     var questNPCLocation: Location? = null,
-    var questNPCUniqueId: Int? = null,
+
     var quests: MutableList<Int>? = null,
     var playersWhoJoined: MutableList<UUID> = mutableListOf(),
 
@@ -37,34 +37,54 @@ data class EventData(
     var regenerativeBlocks: MutableMap<Location, Material>? = null,
 ) {
     fun fromData(): Event {
-        return NetherEvent(
+        val netherEvent = NetherEvent(
             name,
             uniqueId,
+
             eventType,
             startedAt,
+
             endsAt,
             world,
+
             description,
             spawnLocation,
+
             portalLocation,
             portalCuboid,
+
             eventPortalLocation,
             eventPortalCuboid,
+
             questNPCLocation,
-            questNPCUniqueId,
+
             quests,
             playersWhoJoined,
-            spawnPointsCuboid,
-            mutableMapOf(),
-            entityTypeForSpawnPoint,
-            regenerativeBlocks,
-        )
 
+            spawnPointsCuboid,
+            entityTypeForSpawnPoint,
+
+            regenerativeBlocks
+        )
+        val questsCopy = quests?.toList()
+        println("before adding quests")
+        questsCopy?.forEach {
+            println("added a quest")
+            netherEvent.addQuest(it)
+        }
+        println("after adding quests")
+
+        return netherEvent
     }
     fun getSpawnPointIdAt(location: Location): Int? {
         if(spawnPointsCuboid == null) return null
         return spawnPointsCuboid?.entries?.firstNotNullOfOrNull { (key, pair) ->
-            if (isInPortal(location, pair.first, pair.second)) key else null
+            if (isInCuboid(location, pair.first, pair.second)) key else null
         }
+    }
+    fun addQuest(id: Int) {
+        if(quests == null) quests = mutableListOf()
+        if(quests!!.contains(id)) return
+        quests!!.add(id)
     }
 }

@@ -10,7 +10,7 @@ import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.util.getFormattedName
-import com.justxraf.skyblockevents.util.isInPortal
+import com.justxraf.skyblockevents.util.isInCuboid
 import com.sk89q.worldedit.bukkit.WorldEditPlugin
 import com.sk89q.worldedit.regions.CuboidRegion
 import org.bukkit.Bukkit
@@ -23,7 +23,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.EquipmentSlot
 import java.util.*
 
-class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.event") {
+class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
 
     private val eventsManager = EventsManager.instance
     private val worldEdit = Bukkit.getPluginManager().getPlugin("WorldEdit") as WorldEditPlugin
@@ -41,8 +41,6 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
         "REMOVEENTITYSPAWNPOINT"
     )
     /*
-
-    TODO:
      /event seteventportal - Sets the location of the portal in the event world to come back to spawn,
      /event getregenerativeblock <material> - Gives a block to the player which can be placed and is added to the list of regenerative blocks
      /event getregenerativeblockremover - Gives a tool which can remove regenerative blocks
@@ -96,14 +94,16 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
             player.sendColoured("&cMusisz najpierw otworzyć sesję edytowania wydarzenia, " +
                     "aby użyć /event ${args[0]}! Użyj /event edit <id> lub /event create <typ>.")
             return false
-        } else if(sessionCommands.contains(args[0]) && editSession.contains(player.uniqueId)) {
+        } else if(sessionCommands.contains(args[0].uppercase()) && editSession.contains(player.uniqueId)) {
+            println("TEST (SESSION)")
+
             val oneArgCommands = listOf("SETSPAWN",
                 "SETPORTAL",
                 "CLEARDESCRIPTION",
                 "SETQUESTNPC",
                 "SETEVENTPORTAL",
                 "GETREGENERATIVEBLOCKREMOVER")
-            if(args[0] == "REMOVEENTITYSPAWNPOINT") {
+            if(args[0].uppercase() == "REMOVEENTITYSPAWNPOINT") {
                 val event = eventsManager.events[editSession[player.uniqueId]] ?: return false
                 if(event.spawnLocation.world != player.world) {
                     player.sendColoured("&cMusisz znajować się w świecie wydarzenia!")
@@ -138,11 +138,14 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
                     }
                     return true
                 }
+                println("test100")
                 if(args[0].uppercase() == "SETENTITYSPAWNPOINT") {
+                    println("test1")
                     if(args.size != 2) {
                         player.sendColoured("&cNiepoprawna ilość argumentów! Użyj /event setentityspawnpoint <EntityType>")
                         return false
                     }
+                    println("test2")
                     val entityType = EntityType.entries.firstOrNull { it.name.uppercase() == args[1].uppercase() }
                     if(entityType == null) {
                         player.sendColoured("&cTen EntityType nie istnieje! Użyj na przykład \"CREEPER\". Użyj /event setentityspawnpoint <EntityType>.")
@@ -177,7 +180,7 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
                                 0.0,
                                 selection.pos2.z.toDouble())
 
-                            if(isInPortal(player.location, pos1Location, pos2Location)) {
+                            if(isInCuboid(player.location, pos1Location, pos2Location)) {
                                 player.sendColoured("&cLokacje w której obecnie przebywasz jest na terenie innego spawnpointa! " +
                                         "Przejdź trochę dalej i spróbuj ponownie. Użyj /event setentityspawnpoint <EntityType>.")
                                 return false
@@ -192,8 +195,12 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
                         return false
                     }
                 }
+                println("end")
                 return true
             }
+        }
+        if(args[0].uppercase() == "RELOAD") {
+            return true
         }
         if(args[0].uppercase() == "START") {
             if(args.size < 2) {
@@ -269,6 +276,13 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
         if(args[0].uppercase() == "START") processStart(player, args)
         if(args[0].uppercase() == "CREATE") processCreate(player, args)
         if(args[0].uppercase() == "EDIT") processEdit(player, args)
+        if(args[0].uppercase() == "RELOAD") {
+            eventsManager.currentEvent.end()
+            val newEvent = eventsManager.events.values.random()
+            eventsManager.currentEvent = newEvent.fromData()
+
+            player.sendColoured("&aWystartowałeś nowy event.")
+        }
 
         if(args[0].uppercase() == "DESTROYSESSION") processDestroySession(player)
         if(sessionCommands.contains(args[0].uppercase())) processSessionCommands(player, args)
@@ -301,7 +315,7 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
             }
 
             "ADDQUEST" -> {
-                event.quests?.plusAssign(args[1].toInt())
+                event.addQuest(args[1].toInt())
                 player.sendColoured("&aDodano zadanie o ID ${args[1]} dla wydarzenia ${event.name}")
             }
 
@@ -329,14 +343,14 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
                 player.sendColoured("&aUstawiono portal wydarzenia w Twojej lokacji.")
             }
             "GETREGENERATIVEBLOCK" -> {
-                val material = Material.valueOf(args[1])
+                val material = Material.valueOf(args[1].uppercase())
                 val item = ItemBuilder(material, "&cRegenerujący blok").lore(listOf("&7Połóż ten blok w świecie",
                     "&7i będzie on regenerowany",
                     "&7za każdym razem gdy gracz",
                     "&7go zniszczy!"))
                     .hideEnchants(true)
-                    .addEnchant(Enchantment.DURABILITY, 1)
-                    .locname("regenerative_block")
+                    .addEnchant(Enchantment.PROTECTION, 1)
+                    .itemName("regenerative_block")
                     .build()
 
                 player.inventory.setItem(EquipmentSlot.HAND, item)
@@ -345,10 +359,10 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
             }
             "GETREGENERATIVEBLOCKREMOVER" -> {
                 val item = ItemBuilder(Material.WOODEN_PICKAXE, "&cUsuwacz do regenerujących bloków")
-                    .locname("regenerative_block_remover")
+                    .itemName("regenerative_block_remover")
                     .lore(listOf("&7Kliknij na regenerujący blok", "&7Aby go usunąć."))
                     .hideEnchants(true)
-                    .addEnchant(Enchantment.DURABILITY, 1)
+                    .addEnchant(Enchantment.PROTECTION, 1)
                     .build()
                 player.inventory.setItem(EquipmentSlot.HAND, item)
 
@@ -415,16 +429,17 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.skyblockevents.eve
         val session = worldEdit.getSession(player)
         val selection = session.getSelection(session.selectionWorld) as CuboidRegion
         val pos1 = selection.pos1
-        val pos1Location = Location(event.spawnLocation.world, pos1.x.toDouble(), 0.0, pos1.z.toDouble())
-        val pos2 = selection.pos1
-        val pos2Location = Location(event.spawnLocation.world, pos2.x.toDouble(), 0.0, pos2.z.toDouble())
+        val pos1Location = Location(event.spawnLocation.world, pos1.x.toDouble(), pos1.y.toDouble() + 1, pos1.z.toDouble())
+        val pos2 = selection.pos2
+        val pos2Location = Location(event.spawnLocation.world, pos2.x.toDouble(), pos2.y.toDouble() + 1, pos2.z.toDouble())
 
         if(event.spawnPointsCuboid == null) event.spawnPointsCuboid = mutableMapOf()
         if(event.entityTypeForSpawnPoint == null) event.entityTypeForSpawnPoint = mutableMapOf()
 
-        val nextID = event.spawnPointsCuboid!!.keys.max() + 1
-        event.spawnPointsCuboid!![nextID] = Pair(pos1Location, pos2Location)
-        event.entityTypeForSpawnPoint!![nextID] = entityType
+        val nextID = if(event.spawnPointsCuboid.isNullOrEmpty()) 0 else event.spawnPointsCuboid?.keys?.max() ?: 0
+
+        event.spawnPointsCuboid!![nextID + 1] = Pair(pos1Location, pos2Location)
+        event.entityTypeForSpawnPoint!![nextID + 1] = entityType
 
         player.sendColoured("&7Zapisano spawnpoint dla ${entityType.getFormattedName()} na Twojej lokacji.")
     }

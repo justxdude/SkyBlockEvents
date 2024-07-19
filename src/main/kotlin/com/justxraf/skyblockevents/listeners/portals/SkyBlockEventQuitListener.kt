@@ -1,7 +1,8 @@
-package com.justxraf.skyblockevents.listeners.nether.portals
+package com.justxraf.skyblockevents.listeners.portals
 
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxraf.skyblockevents.events.EventsManager
+import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.listeners.ListenersManager
 import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Material
@@ -13,6 +14,7 @@ class SkyBlockEventQuitListener : Listener {
     private val eventsManager = EventsManager.instance
     private val listenersManager = ListenersManager.instance
 
+    // TODO Later on when there is more events - Portals should work for every event as there will always be a "return portal".
     @EventHandler
     fun onPortalTeleport(event: PlayerMoveEvent) {
         val currentEvent = eventsManager.currentEvent

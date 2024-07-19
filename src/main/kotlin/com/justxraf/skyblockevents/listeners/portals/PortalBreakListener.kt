@@ -2,8 +2,9 @@ package com.justxraf.skyblockevents.listeners.portals
 
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
-import com.justxraf.skyblockevents.util.isInPortal
+import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Location
+import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
@@ -20,18 +21,42 @@ class PortalBreakListener : Listener {
     fun onPortalBlockBreak(event: BlockBreakEvent) {
         val location = event.block.location
         val currentEvent = eventsManager.currentEvent
+
         if(currentEvent.portalLocation == null) return
 
-        val portalCuboid = currentEvent.portalCuboid ?: return
-
-        if(!isInPortal(location, portalCuboid.first, portalCuboid.second)) return
         val player = event.player
+        if(player.world != currentEvent.portalLocation!!.world) return
+
+        val portalCuboid = currentEvent.portalCuboid ?: return
+        if(processBlockBreakEvent(location, portalCuboid)) return
 
         event.isCancelled = true
 
         if(!shouldSendMessage(player.uniqueId)) return
         player.sendColoured("&cZostaw to")
     }
+    @EventHandler
+    fun onEventPortalBreak(event: BlockBreakEvent) {
+        val location = event.block.location
+        val currentEvent = eventsManager.currentEvent
+
+        val player = event.player
+        if(player.world != currentEvent.spawnLocation.world) return
+
+        if(currentEvent.eventPortalLocation == null) return
+        val eventPortalCuboid = currentEvent.eventPortalCuboid ?: return
+
+        if(processBlockBreakEvent(location, eventPortalCuboid)) return
+        event.isCancelled = true
+
+        if(!shouldSendMessage(player.uniqueId)) return
+        player.sendColoured("&cZostaw to")
+    }
+    private fun processBlockBreakEvent(location: Location, cuboid: Pair<Location, Location>): Boolean {
+        val (loc1, loc2) = cuboid
+        return !isInCuboid(location, loc1, loc2)
+    }
+
     private fun shouldSendMessage(uniqueId: UUID): Boolean {
         if(timeChecker[uniqueId] == null) {
             timeChecker[uniqueId] = System.currentTimeMillis()

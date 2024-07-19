@@ -3,3 +3,6 @@ version: '${version}'
 main: com.justxraf.skyblockevents.SkyBlockEvents
 api-version: '1.20'
 load: POSTWORLD
+depend:
+  - FancyNpcs
+  - FancyHolograms
