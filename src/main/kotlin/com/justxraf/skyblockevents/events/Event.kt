@@ -47,9 +47,23 @@ open class Event(
     open var entityTypeForSpawnPoint: MutableMap<Int, EntityType>? = null,
 
     open var regenerativeBlocks: MutableMap<Location, Material>? = null,
+
+    /*
+    TODO
+    Regenerate every 20 seconds after breaking
+    Create a listener for plants growth to cancel it whenever there is no players
+
+     */
+    open var regenerativePlants: MutableMap<Location, Material>? = null,
+    open var brokenPlants: MutableMap<Location, Pair<Long, Material>>
 ) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
+
+    private fun processPlantHarvest(location: Location) {
+
+    }
+
     open fun reload() {
         Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable { println("hi") }, 200)
     }
