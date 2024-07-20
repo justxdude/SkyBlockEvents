@@ -1,6 +1,5 @@
 package com.justxraf.skyblockevents.events
 
-import com.google.gson.annotations.SerializedName
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.SkyBlockEvents
@@ -14,6 +13,7 @@ import com.sk89q.worldedit.regions.CuboidRegion
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.block.data.Ageable
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import java.util.*
@@ -55,7 +55,8 @@ open class Event(
 
      */
     open var regenerativePlants: MutableMap<Location, Material>? = null,
-    open var brokenPlants: MutableMap<Location, Pair<Long, Material>>
+    open var harvestedPlants: MutableMap<Location, Pair<Long, Material>> = mutableMapOf(),
+    open var activePlayers: MutableList<UUID> = mutableListOf(),
 ) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
@@ -63,9 +64,57 @@ open class Event(
     private fun processPlantHarvest(location: Location) {
 
     }
+    // Checks harvested plants
+    private fun checkPlants() {
+        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
+
+        plantRegenerativePlants()
+    }
+    private fun placeAllRegenerativePlants() {
+        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
+
+        regenerativePlants!!.forEach { (location, material) ->
+            val block = location.world?.getBlockAt(location) ?: return@forEach
+            block.type = material
+
+            val ageable = block.blockData as? Ageable ?: return@forEach
+            ageable.age = 0
+        }
+    }
+    private fun plantRegenerativePlants() {
+        if(harvestedPlants.isEmpty()) return
+
+        harvestedPlants.filter {  System.currentTimeMillis() -  it.value.first < 30000 }.forEach { (location, pair) ->
+            val (long, material) = pair
+
+            val block = location.world?.getBlockAt(location) ?: return@forEach
+            block.type = material
+
+            val ageable = block.blockData as? Ageable ?: return@forEach
+            ageable.age = 0
+        }
+    }
+    fun harvestRegenerativePlant(location: Location) {
+        if(harvestedPlants.isEmpty()) return
+        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
+
+        val harvestablePlant = regenerativePlants!![location] ?: return
+
+        harvestedPlants[location] = Pair(System.currentTimeMillis(), harvestablePlant)
+    }
+    fun canHarvestRegenerativePlant(location: Location): Boolean {
+        val block = location.world?.getBlockAt(location) ?: return false
+        val ageable = block.blockData as? Ageable ?: return false
+
+        return ageable.age == ageable.maximumAge
+    }
+    fun isRegenerativePlant(location: Location): Boolean {
+        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
+        return regenerativePlants!!.containsKey(location)
+    }
 
     open fun reload() {
-        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable { println("hi") }, 200)
+
     }
     open fun start() {
         playersWhoJoined.clear()

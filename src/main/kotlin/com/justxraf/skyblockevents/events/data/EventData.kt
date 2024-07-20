@@ -35,6 +35,7 @@ data class EventData(
     var entityTypeForSpawnPoint: MutableMap<Int, EntityType>? = null,
 
     var regenerativeBlocks: MutableMap<Location, Material>? = null,
+    var regenerativePlants: MutableMap<Location, Material>? = null,
 ) {
     fun fromData(): Event {
         val netherEvent = NetherEvent(
@@ -64,16 +65,14 @@ data class EventData(
             spawnPointsCuboid,
             entityTypeForSpawnPoint,
 
-            regenerativeBlocks
+            regenerativeBlocks,
+            regenerativePlants,
         )
         val questsCopy = quests?.toList()
-        println("before adding quests")
+
         questsCopy?.forEach {
-            println("added a quest")
             netherEvent.addQuest(it)
         }
-        println("after adding quests")
-
         return netherEvent
     }
     fun getSpawnPointIdAt(location: Location): Int? {
@@ -86,5 +85,11 @@ data class EventData(
         if(quests == null) quests = mutableListOf()
         if(quests!!.contains(id)) return
         quests!!.add(id)
+    }
+    fun addRegenerativePlant(location: Location, material: Material) {
+        if(regenerativePlants == null) regenerativePlants = mutableMapOf()
+        if(regenerativePlants!!.contains(location)) return
+
+        regenerativePlants!![location] = material
     }
 }

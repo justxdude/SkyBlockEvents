@@ -38,7 +38,8 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
         "SETEVENTPORTAL",
         "GETREGENERATIVEBLOCK",
         "GETREGENERATIVEBLOCKREMOVER",
-        "REMOVEENTITYSPAWNPOINT"
+        "REMOVEENTITYSPAWNPOINT",
+        "GETREGENERATIVEPLANTEDITOR",
     )
     /*
      /event seteventportal - Sets the location of the portal in the event world to come back to spawn,
@@ -88,6 +89,7 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                     player.sendColoured("&c/event removeentityspawnpoint &8- &7Usuwa spawnpoint w lokacji w której obecnie przebywasz.")
                 }
             }
+            // TODO Recommended commands needs rewriting.
             return false
         }
         if(sessionCommands.contains(args[0].uppercase()) && !editSession.contains(player.uniqueId)) {
@@ -102,7 +104,9 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                 "CLEARDESCRIPTION",
                 "SETQUESTNPC",
                 "SETEVENTPORTAL",
-                "GETREGENERATIVEBLOCKREMOVER")
+                "GETREGENERATIVEBLOCKREMOVER",
+                "GETREGENERATIVEPLANTEDITOR"
+                )
             if(args[0].uppercase() == "REMOVEENTITYSPAWNPOINT") {
                 val event = eventsManager.events[editSession[player.uniqueId]] ?: return false
                 if(event.spawnLocation.world != player.world) {
@@ -121,7 +125,7 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                     player.sendColoured("&cMusisz użyć przynajmniej dwóch argumentów! /event ${args[0]}.")
                     return false
                 }
-                if(args[0].uppercase() == "GETREGENERATIVEBLOCK") { // /event getregenerativeblock <materia>
+                if(args[0].uppercase() == "GETREGENERATIVEBLOCK") { // /event getregenerativeblock <material>
                     val material = Material.entries.firstOrNull { it.name == args[1].uppercase() }
                     if(material == null) {
                         player.sendColoured("&cUżyj poprawnego materiału w drugim argumencie! Użyj /event getregenerativeblock <materiał>.")
@@ -374,6 +378,17 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                 event.entityTypeForSpawnPoint?.remove(spawnPoint)
 
                 player.sendColoured("&aUsunięto spawnpoint w którym przebywałeś poprawnie.")
+            }
+            "GETREGENERATIVEPLANTEDITOR" -> {
+                val item = ItemBuilder(Material.WOODEN_HOE, "&cNarzędzie do modyfikacji regenerujących roślin")
+                    .itemName("regenerative_plant_editor")
+                    .lore(listOf("&7Kliknij lewym na roślinę", "&7Aby usunąć ją z listy.", "&7", "&7Kliknij prawym na roślinę", "&7Aby dodać ją do listy."))
+                    .hideEnchants(true)
+                    .addEnchant(Enchantment.PROTECTION, 1)
+                    .build()
+                player.inventory.setItem(EquipmentSlot.HAND, item)
+
+                player.sendColoured("&aOtrzymałeś przedmiot do modyfikowania roślin (użyj tylko do wydarzeń).")
             }
             else -> return
         }

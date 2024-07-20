@@ -55,11 +55,13 @@ class NetherEvent(
     override var entityTypeForSpawnPoint: MutableMap<Int, EntityType>? = mutableMapOf(),
 
     override var regenerativeBlocks: MutableMap<Location, Material>? = mutableMapOf(),
+    override var regenerativePlants: MutableMap<Location, Material>? = mutableMapOf(),
 
     // Live event
+    override var harvestedPlants: MutableMap<Location, Pair<Long, Material>> = mutableMapOf(),
     private var spawnPointsEntities: MutableMap<Int, MutableMap<UUID, EntityType>>? = mutableMapOf(),
     private var brokenBlocks: MutableMap<Location, Pair<Long, Material>> = mutableMapOf(),
-    private var activePlayers: MutableList<UUID> = mutableListOf(),
+    override var activePlayers: MutableList<UUID> = mutableListOf(),
     private var task: BukkitTask? = null,
     private var activityCheckTask: BukkitTask? = null
 
@@ -234,14 +236,16 @@ class NetherEvent(
 
             if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
             val entities = spawnPointsEntities!!.flatMap { it.value.keys }.toMutableList()
-            val worldEntities = world.entities.map { it.uniqueId }
-
+            val worldEntities = world.entities
+            val worldEntitiesUUIDs = worldEntities.map { it.uniqueId }
             // Remove entities from the map if they no longer exist in the world
             entities.forEach { uuid ->
-                if (!worldEntities.contains(uuid)) {
+                if (!worldEntitiesUUIDs.contains(uuid)) {
                     removeEntity(uuid)
                 }
             }
+            val ttt = FancyNpcsPlugin.get().npcManager
+            worldEntities.filter { !entities.contains(it.uniqueId) && it !is Player && ttt. }.forEach { it.remove() }
             shouldSpawnEntity()
         }catch (e: Exception) {
             e.printStackTrace()

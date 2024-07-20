@@ -5,6 +5,7 @@ import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.listeners.nether.QuestNPCInteractListener
 import com.justxraf.skyblockevents.listeners.nether.blocks.RegenerativeBlockListener
+import com.justxraf.skyblockevents.listeners.nether.blocks.RegenerativePlantListener
 import com.justxraf.skyblockevents.listeners.nether.entities.EntityDamageListener
 import com.justxraf.skyblockevents.listeners.nether.entities.EntityDeathListener
 import com.justxraf.skyblockevents.listeners.nether.entities.NaturalEntitySpawnListener
@@ -27,6 +28,10 @@ class ListenersManager(private val plugin: JavaPlugin) {
 
             PlayerJoinListener(),
             QuestNpcPlayerNearbyListener(),
+        )
+        // Event
+        plugin.registerListeners(
+            RegenerativePlantListener()
         )
 
         // Nether Event
