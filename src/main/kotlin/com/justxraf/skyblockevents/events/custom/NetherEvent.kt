@@ -236,6 +236,7 @@ class NetherEvent(
 
             if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
             val entities = spawnPointsEntities!!.flatMap { it.value.keys }.toMutableList()
+
             val worldEntities = world.entities
             val worldEntitiesUUIDs = worldEntities.map { it.uniqueId }
             // Remove entities from the map if they no longer exist in the world
@@ -244,8 +245,8 @@ class NetherEvent(
                     removeEntity(uuid)
                 }
             }
-            val ttt = FancyNpcsPlugin.get().npcManager
-            worldEntities.filter { !entities.contains(it.uniqueId) && it !is Player && ttt. }.forEach { it.remove() }
+
+            worldEntities.filter { !entities.contains(it.uniqueId) && it !is Player }.forEach { it.remove() }
             shouldSpawnEntity()
         }catch (e: Exception) {
             e.printStackTrace()

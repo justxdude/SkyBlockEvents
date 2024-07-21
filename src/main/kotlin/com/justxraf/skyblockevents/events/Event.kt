@@ -77,7 +77,7 @@ open class Event(
             val block = location.world?.getBlockAt(location) ?: return@forEach
             block.type = material
 
-            val ageable = block.blockData as? Ageable ?: return@forEach
+            val ageable = block.state as? Ageable ?: return@forEach
             ageable.age = 0
         }
     }
@@ -90,7 +90,7 @@ open class Event(
             val block = location.world?.getBlockAt(location) ?: return@forEach
             block.type = material
 
-            val ageable = block.blockData as? Ageable ?: return@forEach
+            val ageable = block.state as? Ageable ?: return@forEach
             ageable.age = 0
         }
     }
@@ -104,13 +104,19 @@ open class Event(
     }
     fun canHarvestRegenerativePlant(location: Location): Boolean {
         val block = location.world?.getBlockAt(location) ?: return false
-        val ageable = block.blockData as? Ageable ?: return false
+        val ageable = block.state as? Ageable ?: return false
 
         return ageable.age == ageable.maximumAge
     }
     fun isRegenerativePlant(location: Location): Boolean {
         if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
         return regenerativePlants!!.containsKey(location)
+    }
+    fun addRegenerativePlant(location: Location, material: Material) {
+        if(regenerativePlants == null) regenerativePlants = mutableMapOf()
+        if(regenerativePlants!!.contains(location)) return
+
+        regenerativePlants!![location] = material
     }
 
     open fun reload() {

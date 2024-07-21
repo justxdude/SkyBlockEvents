@@ -4,6 +4,7 @@ import com.justxdude.islandcore.listenersv2.world.offline.OfflineGrowthListener
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import org.bukkit.Material
+import org.bukkit.block.data.Ageable
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
@@ -16,47 +17,73 @@ class RegenerativePlantListener : Listener {
 
     @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
-        if (event.action == Action.RIGHT_CLICK_BLOCK || event.action != Action.LEFT_CLICK_BLOCK) return
-        val player = event.player
+        println(event.action)
+        val action = event.action
 
-        if (!player.hasPermission("hyperiol.events.admin")) return
+        if(action == Action.RIGHT_CLICK_BLOCK || action == Action.LEFT_CLICK_BLOCK) {
+            val player = event.player
 
-        val item = player.itemInHand
-        if (item.type != Material.WOODEN_HOE) return
+            if (!player.hasPermission("hyperiol.events.admin")) return
 
-        val itemMeta = item.itemMeta ?: return
-        val itemName = itemMeta.itemName
+            val item = player.itemInHand
+            if (item.type != Material.WOODEN_HOE) return
 
-        if (itemName != "regenerative_plant_editor") return
-        val clickedBlock = event.clickedBlock ?: return
+            val itemMeta = item.itemMeta ?: return
+            val itemName = itemMeta.itemName
 
-        if(event.action == Action.RIGHT_CLICK_BLOCK) { // Remove
+            if (itemName != "regenerative_plant_editor") return
+            val clickedBlock = event.clickedBlock ?: return
 
-            val eventFromBlock = eventsManager.events
-                .filter { (_, eventData) ->
-                    eventData.regenerativePlants != null && eventData.regenerativePlants?.get(clickedBlock.location) != null
+            if (clickedBlock.blockData !is Ageable) {
+                player.sendColoured("&cTen blok nie jest rośliną!")
+                return
+            }
+
+            if (event.action == Action.RIGHT_CLICK_BLOCK) { // Remove
+                val eventFromBlock = eventsManager.events
+                    .filter { (_, eventData) ->
+                        eventData.regenerativePlants != null && eventData.regenerativePlants?.get(clickedBlock.location) != null
+                    }
+                    .firstNotNullOfOrNull { it.value }
+                if (eventFromBlock == null) {
+                    player.sendColoured("&cNie ma tutaj żadnej regenerującej rośliny!")
+                    event.isCancelled = true
+                    return
                 }
-                .firstNotNullOfOrNull { it.value }
-            if (eventFromBlock == null) {
-                player.sendColoured("&cNie ma tutaj żadnej regenerującej rośliny!")
-                event.isCancelled = true
-                return
-            }
-            eventFromBlock.regenerativePlants?.remove(clickedBlock.location)
-            player.sendColoured("&7Usunięto regenerującą roślinę z wydarzenia o ID ${eventFromBlock.uniqueId}.")
+                if(!eventFromBlock.isRegenerativePlant(clickedBlock.location)) {
+                    player.sendColoured("&cTa roślina nie jest na liście regenerujących!")
+                    return
+                }
+                eventFromBlock.regenerativePlants?.remove(clickedBlock.location)
+                player.sendColoured("&7Usunięto regenerującą roślinę z wydarzenia o ID ${eventFromBlock.uniqueId}.")
 
-            if (eventsManager.currentEvent.uniqueId == eventFromBlock.uniqueId)
-                eventsManager.currentEvent.regenerativePlants?.remove(clickedBlock.location)
+                if (eventsManager.currentEvent.uniqueId == eventFromBlock.uniqueId)
+                    eventsManager.currentEvent.regenerativePlants?.remove(clickedBlock.location)
 
-        } else { // Add
-            val selectedEvent = eventsManager.events.filter { (_, value) -> value.world == event.player.world.name }
-                .firstNotNullOfOrNull { it.value }
-            if (selectedEvent == null) {
-                player.sendColoured("&cNie możesz ustawić regenerującej rośliny w tym świecie, ponieważ nie ma w nim żadnych wydarzeń!")
-                event.isCancelled = true
-                return
+                eventsManager.saveEvent(eventFromBlock)
+
+            } else { // Add
+                val selectedEvent = eventsManager.events.filter { (_, value) -> value.world == event.player.world.name }
+                    .firstNotNullOfOrNull { it.value }
+                if (selectedEvent == null) {
+                    player.sendColoured("&cNie możesz ustawić regenerującej rośliny w tym świecie, ponieważ nie ma w nim żadnych wydarzeń!")
+                    event.isCancelled = true
+                    return
+                }
+                if(selectedEvent.isRegenerativePlant(clickedBlock.location)) {
+                    player.sendColoured("&cTa roślina jest już dodana do listy!")
+                    return
+                }
+
+                player.sendColoured("&aDodano regenerującą roślinę do wydarzenia o identyfikatorze ${selectedEvent.uniqueId}.")
+                selectedEvent.addRegenerativePlant(clickedBlock.location, clickedBlock.type)
+
+                if(eventsManager.currentEvent.uniqueId == selectedEvent.uniqueId)
+                    eventsManager.currentEvent.addRegenerativePlant(clickedBlock.location, clickedBlock.type)
+
+                eventsManager.saveEvent(selectedEvent)
             }
-            selectedEvent.addRegenerativePlant(player.location, clickedBlock.type)
+            event.isCancelled = true
         }
     }
     @EventHandler

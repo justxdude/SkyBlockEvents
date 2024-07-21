@@ -92,4 +92,8 @@ data class EventData(
 
         regenerativePlants!![location] = material
     }
+    fun isRegenerativePlant(location: Location): Boolean {
+        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
+        return regenerativePlants!!.containsKey(location)
+    }
 }
