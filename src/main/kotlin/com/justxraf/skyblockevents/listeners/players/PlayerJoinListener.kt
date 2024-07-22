@@ -1,13 +1,13 @@
-package com.justxraf.skyblockevents.listeners
+package com.justxraf.skyblockevents.listeners.players
 
 import com.justxdude.islandcore.islands.islandmanager.IslandManager.Companion.island
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
+import com.justxraf.questscore.quests.QuestsManager
 import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.util.formatDuration
-import com.justxraf.skyblockevents.util.toTimeAgo
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
@@ -16,11 +16,6 @@ import org.bukkit.event.player.PlayerQuitEvent
 class PlayerJoinListener : Listener {
     private val eventsManager = EventsManager.instance
     private val questsUserManager = UsersManager.instance
-
-
-
-    // TODO Fix deletion of quests on player join :)
-
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
@@ -39,6 +34,9 @@ class PlayerJoinListener : Listener {
             currentEvent.startMessage().forEach {
                 player.sendColoured(it)
             }
+
+            val questUser = UsersManager.instance.getUser(player.uniqueId) ?: return
+            currentEvent.restartQuestsFor(questUser)
         }
     }
     // World check
@@ -58,19 +56,5 @@ class PlayerJoinListener : Listener {
 
         if(island != null) island.teleportHome(skyBlockUser, false, true)
                 else SkyblockAPI.instance.spawn.teleport(player)
-    }
-    @EventHandler
-    fun onPlayerJoinQuests(event: PlayerQuitEvent) {
-        val player = event.player
-        val currentEvent = eventsManager.currentEvent
-
-        val questUser = questsUserManager.getUser(player.uniqueId) ?: return
-        val quests = currentEvent.quests ?: return
-
-        val keysToRemove =
-            questUser.finishedQuests.filter { quests.contains(it.key) && it.value.time < currentEvent.startedAt }
-                .map { it.key }
-
-        keysToRemove.forEach { questUser.finishedQuests.remove(it) }
     }
 }

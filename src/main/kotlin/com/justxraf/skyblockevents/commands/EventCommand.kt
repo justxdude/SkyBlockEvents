@@ -334,10 +334,7 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                 processSetEntitySpawnpoint(player, args)
             }
             "SETEVENTPORTAL" -> {
-                if(player.location.world != event.spawnLocation.world) {
-                    player.sendColoured("&cPortal wydarzenia powinien być w tym samym świecie, w którym jest wydarzenie!")
-                    return
-                }
+
                 event.eventPortalLocation = player.location
                 player.sendColoured("&aUstawiono portal wydarzenia w Twojej lokacji.")
             }

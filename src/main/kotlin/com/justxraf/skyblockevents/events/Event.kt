@@ -2,6 +2,7 @@ package com.justxraf.skyblockevents.events
 
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxdude.networkapi.util.Utils.toDate
+import com.justxraf.questscore.users.QuestUser
 import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
@@ -636,7 +637,12 @@ open class Event(
         }
     }
 
+    fun restartQuestsFor(questUser: QuestUser) {
+        if(quests.isNullOrEmpty()) quests = mutableListOf()
+        if(playersWhoJoined.contains(questUser.uniqueId)) return
 
+        questUser.finishedQuests.filter { quests!!.contains(it.key) }
+    }
 
     fun toData() = EventData(
         name,

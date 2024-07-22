@@ -15,8 +15,6 @@ class PlayerDeathListener : Listener {
     @EventHandler
     fun onPlayerDeath(event: CustomPlayerDeathEvent) {
         val currentEvent = eventsManager.currentEvent
-        if(currentEvent !is NetherEvent) return
-
         val player = event.player
 
         if(!listenersManager.doChecks(player.location, currentEvent.spawnLocation))

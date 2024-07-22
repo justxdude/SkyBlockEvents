@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.listeners
+package com.justxraf.skyblockevents.listeners.npcs
 
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.util.pushPlayerIfClose
