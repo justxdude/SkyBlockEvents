@@ -1,16 +1,11 @@
-package com.justxraf.skyblockevents.listeners.nether.entities
+package com.justxraf.skyblockevents.listeners.entities
 
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.listeners.ListenersManager
-import org.bukkit.entity.Animals
-import org.bukkit.entity.LivingEntity
-import org.bukkit.entity.Monster
-import org.bukkit.entity.SpawnCategory
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.CreatureSpawnEvent
-import org.bukkit.event.entity.EntitySpawnEvent
 
 class NaturalEntitySpawnListener : Listener {
     private val eventsManager = EventsManager.instance

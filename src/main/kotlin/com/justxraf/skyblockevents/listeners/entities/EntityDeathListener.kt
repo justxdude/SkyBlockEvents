@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.listeners.nether.entities
+package com.justxraf.skyblockevents.listeners.entities
 
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.custom.NetherEvent
@@ -9,9 +9,7 @@ import org.bukkit.damage.DamageType
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDeathEvent
-import org.json.XMLTokener.entity
 
 class EntityDeathListener : Listener {
     // TODO Checks: Add a check to control player death (there is an event in SkyblockAPI which controls it...)
@@ -21,8 +19,6 @@ class EntityDeathListener : Listener {
     @EventHandler
     fun onEntityDeath(event: EntityDeathEvent) {
         val currentEvent = eventsManager.currentEvent
-        if(currentEvent !is NetherEvent) return
-
         val world = currentEvent.world
 
         val entity = event.entity
@@ -41,12 +37,10 @@ class EntityDeathListener : Listener {
         if(event.entity.location.y > .0) return
 
         val currentEvent = eventsManager.currentEvent
-        if(currentEvent !is NetherEvent) return
-
-        val world = currentEvent.world
+        val world = currentEvent.spawnLocation.world
 
         val entity = event.entity
-        val entityWorld = entity.world.name
+        val entityWorld = entity.world
 
         if(world != entityWorld) return
 

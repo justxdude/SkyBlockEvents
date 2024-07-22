@@ -1,21 +1,16 @@
-package com.justxraf.skyblockevents.listeners.nether.blocks
+package com.justxraf.skyblockevents.listeners.blocks
 
-import com.github.supergluelib.foundation.giveOrDropItem
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.listeners.ListenersManager
 import com.justxraf.skyblockevents.util.pushPlayerIfClose
-import kotlinx.coroutines.selects.select
-import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
 

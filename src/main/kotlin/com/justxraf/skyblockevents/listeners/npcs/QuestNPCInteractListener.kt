@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.listeners.nether
+package com.justxraf.skyblockevents.listeners.npcs
 
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.questscore.objectives.objective.NPCInteractionObjective

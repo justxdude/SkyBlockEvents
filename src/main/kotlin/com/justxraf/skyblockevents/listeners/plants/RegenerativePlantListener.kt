@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.listeners.blocks
+package com.justxraf.skyblockevents.listeners.plants
 
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
@@ -103,15 +103,5 @@ class RegenerativePlantListener : Listener {
             return
         }
         currentEvent.harvestRegenerativePlant(location)
-    }
-    @EventHandler
-    fun onPlantGrowth(event: BlockGrowEvent) {
-        val currentEvent = eventsManager.currentEvent
-        val block = event.block
-
-        if(block.location.world != currentEvent.spawnLocation.world) return
-        if(currentEvent.activePlayers.isNotEmpty()) return
-
-        event.isCancelled
     }
 }

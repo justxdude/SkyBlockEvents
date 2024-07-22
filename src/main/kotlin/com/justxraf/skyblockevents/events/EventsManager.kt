@@ -103,7 +103,6 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             val event = gson.fromJson(eventJson, EventData::class.java)
 
             events[event.uniqueId] = event
-            println("Processed event id ${event.uniqueId}")
         }
     }
 

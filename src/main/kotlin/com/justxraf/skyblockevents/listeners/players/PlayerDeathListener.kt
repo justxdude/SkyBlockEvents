@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.listeners.nether.players
+package com.justxraf.skyblockevents.listeners.players
 
 import com.justxdude.islandcore.api.player.CustomPlayerDeathEvent
 import com.justxdude.networkapi.util.Utils.sendColoured

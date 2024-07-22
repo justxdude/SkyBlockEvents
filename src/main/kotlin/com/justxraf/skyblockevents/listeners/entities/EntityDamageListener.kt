@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.listeners.nether.entities
+package com.justxraf.skyblockevents.listeners.entities
 
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.custom.NetherEvent
@@ -18,9 +18,12 @@ class EntityDamageListener : Listener {
     @EventHandler
     fun onProjectileHit(event: ProjectileHitEvent) {
         val currentEvent = eventsManager.currentEvent
-        if(currentEvent !is NetherEvent) return
 
         val projectile = event.entity
+        val projectileWorld = projectile.world
+
+        if(currentEvent.spawnLocation.world != projectileWorld) return
+
         if(!listenersManager.doChecks(event.entity.location, currentEvent.spawnLocation)) return
 
         if(projectile.shooter is Player) return

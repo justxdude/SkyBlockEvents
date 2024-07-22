@@ -3,13 +3,14 @@ package com.justxraf.skyblockevents.listeners
 import com.github.supergluelib.foundation.registerListeners
 import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.events.EventsManager
-import com.justxraf.skyblockevents.listeners.nether.QuestNPCInteractListener
-import com.justxraf.skyblockevents.listeners.nether.blocks.RegenerativeBlockListener
-import com.justxraf.skyblockevents.listeners.nether.blocks.RegenerativePlantListener
-import com.justxraf.skyblockevents.listeners.nether.entities.EntityDamageListener
-import com.justxraf.skyblockevents.listeners.nether.entities.EntityDeathListener
-import com.justxraf.skyblockevents.listeners.nether.entities.NaturalEntitySpawnListener
-import com.justxraf.skyblockevents.listeners.nether.players.PlayerDeathListener
+import com.justxraf.skyblockevents.listeners.npcs.QuestNPCInteractListener
+import com.justxraf.skyblockevents.listeners.blocks.RegenerativeBlockListener
+import com.justxraf.skyblockevents.listeners.plants.RegenerativePlantListener
+import com.justxraf.skyblockevents.listeners.entities.EntityDamageListener
+import com.justxraf.skyblockevents.listeners.entities.EntityDeathListener
+import com.justxraf.skyblockevents.listeners.entities.NaturalEntitySpawnListener
+import com.justxraf.skyblockevents.listeners.plants.RegenerativePlantGrowListener
+import com.justxraf.skyblockevents.listeners.players.PlayerDeathListener
 import com.justxraf.skyblockevents.listeners.portals.SkyBlockEventQuitListener
 import com.justxraf.skyblockevents.listeners.portals.PortalBreakListener
 import com.justxraf.skyblockevents.listeners.portals.PortalJoinListener
@@ -21,31 +22,32 @@ class ListenersManager(private val plugin: JavaPlugin) {
     fun doChecks(entityLocation: Location, eventLocation: Location): Boolean = entityLocation.world == eventLocation.world
 
     private fun setup() {
+        // Blocks
         plugin.registerListeners(
-            // Portals
-            PortalBreakListener(),
-            PortalJoinListener(),
-
-            PlayerJoinListener(),
-            QuestNpcPlayerNearbyListener(),
+            RegenerativeBlockListener()
         )
-        // Event
+        // Entities
         plugin.registerListeners(
-            RegenerativePlantListener()
-        )
-
-        // Nether Event
-        plugin.registerListeners(
-            QuestNPCInteractListener(),
-
-            // entity
             EntityDamageListener(),
             EntityDeathListener(),
             NaturalEntitySpawnListener(),
-            RegenerativeBlockListener(),
-
-            // player
-            PlayerDeathListener(),
+        )
+        // NPCs
+        plugin.registerListeners(
+            QuestNPCInteractListener(),
+        )
+        // Plants
+        plugin.registerListeners(
+            RegenerativePlantListener(),
+            RegenerativePlantGrowListener(),
+        )
+        // Players
+        plugin.registerListeners(
+            PlayerDeathListener()
+        )
+        plugin.registerListeners(
+            PortalBreakListener(),
+            PortalJoinListener(),
             SkyBlockEventQuitListener(),
         )
     }

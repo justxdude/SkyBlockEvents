@@ -97,7 +97,6 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                     "aby użyć /event ${args[0]}! Użyj /event edit <id> lub /event create <typ>.")
             return false
         } else if(sessionCommands.contains(args[0].uppercase()) && editSession.contains(player.uniqueId)) {
-            println("TEST (SESSION)")
 
             val oneArgCommands = listOf("SETSPAWN",
                 "SETPORTAL",
@@ -142,14 +141,11 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                     }
                     return true
                 }
-                println("test100")
                 if(args[0].uppercase() == "SETENTITYSPAWNPOINT") {
-                    println("test1")
                     if(args.size != 2) {
                         player.sendColoured("&cNiepoprawna ilość argumentów! Użyj /event setentityspawnpoint <EntityType>")
                         return false
                     }
-                    println("test2")
                     val entityType = EntityType.entries.firstOrNull { it.name.uppercase() == args[1].uppercase() }
                     if(entityType == null) {
                         player.sendColoured("&cTen EntityType nie istnieje! Użyj na przykład \"CREEPER\". Użyj /event setentityspawnpoint <EntityType>.")
@@ -199,7 +195,6 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                         return false
                     }
                 }
-                println("end")
                 return true
             }
         }

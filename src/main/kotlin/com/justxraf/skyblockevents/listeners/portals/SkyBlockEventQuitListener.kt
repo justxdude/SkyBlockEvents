@@ -14,7 +14,7 @@ class SkyBlockEventQuitListener : Listener {
     private val eventsManager = EventsManager.instance
     private val listenersManager = ListenersManager.instance
 
-    // TODO Later on when there is more events - Portals should work for every event as there will always be a "return portal".
+    // Return portal
     @EventHandler
     fun onPortalTeleport(event: PlayerMoveEvent) {
         val currentEvent = eventsManager.currentEvent
