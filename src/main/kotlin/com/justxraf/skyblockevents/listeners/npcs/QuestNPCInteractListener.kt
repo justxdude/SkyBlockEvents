@@ -26,34 +26,28 @@ class QuestNPCInteractListener : Listener {
     fun onEntityInteract(event: NpcInteractEvent) {
         val currentEvent = eventsManager.currentEvent
         val player = event.player
-        println("test1")
         val npcData = event.npc.data
+
         if(npcData.name != "${currentEvent.uniqueId}_event_npc") return
-        println("test2")
         if(!listenersManager.doChecks(player.location, currentEvent.spawnLocation)) return
-        println("test3")
+
         if(event.interactionType != InteractionType.RIGHT_CLICK) return
-        println("test4")
         var eventQuests = currentEvent.quests
+
         // attempt to retrieve quests from EventData
         if(eventQuests == null) {
             val eventData = eventsManager.events[currentEvent.uniqueId] ?: return
             val questsCopy = eventData.quests?.toList()
-            println("before adding quests")
             questsCopy?.forEach {
-                println("added a quest")
                 currentEvent.addQuest(it)
             }
-            println("after adding quests")
             eventQuests = currentEvent.quests
         }
         if(eventQuests.isNullOrEmpty()) {
-            println("Quests are empty again")
             return
         }
-        println("test5")
         val questUser = questUserManager.getUser(player.uniqueId) ?: return
-        println("test6")
+
         if(questUser.activeQuests.any { eventQuests.contains(it.uniqueId) }) {
             // Check if the goal is related to speaking to the npc
             val objective = questUser

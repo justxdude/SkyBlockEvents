@@ -1,6 +1,5 @@
-package com.justxraf.skyblockevents.listeners.nether.blocks
+package com.justxraf.skyblockevents.listeners.blocks
 
-import com.justxdude.islandcore.listenersv2.world.offline.OfflineGrowthListener
 import com.justxdude.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import org.bukkit.Material
@@ -17,7 +16,6 @@ class RegenerativePlantListener : Listener {
 
     @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
-        println(event.action)
         val action = event.action
 
         if(action == Action.RIGHT_CLICK_BLOCK || action == Action.LEFT_CLICK_BLOCK) {
@@ -42,7 +40,7 @@ class RegenerativePlantListener : Listener {
             if (event.action == Action.RIGHT_CLICK_BLOCK) { // Remove
                 val eventFromBlock = eventsManager.events
                     .filter { (_, eventData) ->
-                        eventData.regenerativePlants != null && eventData.regenerativePlants?.get(clickedBlock.location) != null
+                        eventData.regenerativePlants != null && eventData.isRegenerativePlant(clickedBlock.location)
                     }
                     .firstNotNullOfOrNull { it.value }
                 if (eventFromBlock == null) {
@@ -96,7 +94,9 @@ class RegenerativePlantListener : Listener {
         val player = event.player
         val location = block.location
 
+
         if (!currentEvent.isRegenerativePlant(location)) return
+
         if(!currentEvent.canHarvestRegenerativePlant(location)) {
             player.sendColoured("&cDaj temu urosnąć")
             event.isCancelled = true
