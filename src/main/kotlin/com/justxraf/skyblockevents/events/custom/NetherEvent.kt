@@ -1,8 +1,8 @@
 package com.justxraf.skyblockevents.events.custom
 
 import com.justxdude.islandcore.utils.toLocationString
-import com.justxdude.networkapi.util.Utils.sendColoured
-import com.justxdude.networkapi.util.Utils.toDate
+import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.Utils.toDate
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.questscore.component.ComponentsManager
 import com.justxraf.questscore.utils.sendMessages
@@ -12,7 +12,7 @@ import com.justxraf.skyblockevents.events.EventType
 import com.justxraf.skyblockevents.util.isInCuboid
 import com.justxraf.skyblockevents.util.pasteSchematic
 import com.justxraf.skyblockevents.util.plugin
-import com.justxraf.skyblockevents.util.pushPlayerIfClose
+import com.justxraf.skyblockevents.util.pushIfClose
 import de.oliver.fancyholograms.api.FancyHologramsPlugin
 import de.oliver.fancyholograms.api.data.TextHologramData
 import de.oliver.fancynpcs.api.FancyNpcsPlugin
@@ -80,17 +80,6 @@ class NetherEvent(
     harvestedPlants, activePlayers) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
-
-
-    /*
-
-    TODO:
-    - Add regenerative plants:
-     - Checks the plant every X seconds (10 to 15 seconds)
-     - If the plant doesn't exist - it should plant a young one.
-    TODO: Move everything to Event class
-
-     */
 
     override fun reload() {
         super.reload()

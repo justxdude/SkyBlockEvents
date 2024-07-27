@@ -19,10 +19,8 @@ val schematicsFolder = File(plugin.dataFolder, "schematics")
 private fun loadSchematic(schematicName: String): Clipboard? {
     val schematicFile = File(schematicsFolder, "${schematicName}.schem")
 
-    if (!schematicFile.exists()) {
-        plugin.logger.info("Schematic $schematicName is null!")
-        return null
-    }
+    if (!schematicFile.exists())
+        throw NullPointerException("Schematic $schematicName is null!")
 
     val format = ClipboardFormats.findByFile(schematicFile)
     format?.let {
@@ -56,7 +54,7 @@ fun pasteSchematic(location: Location, filePath: String): Pair<Location, Locatio
 
         Operations.complete(operation)
 
-        return Pair(pos1, pos2)
+        return Pair(pos1.clone().add(.75, .0, .75), pos2.clone().add(.75, .0,.75))
     } finally {
         session.close()
     }

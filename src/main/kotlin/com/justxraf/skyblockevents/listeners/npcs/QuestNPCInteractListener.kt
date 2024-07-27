@@ -1,6 +1,6 @@
 package com.justxraf.skyblockevents.listeners.npcs
 
-import com.justxdude.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.questscore.objectives.objective.NPCInteractionObjective
 import com.justxraf.questscore.quests.QuestsManager
 import com.justxraf.questscore.users.QuestUser
@@ -43,9 +43,7 @@ class QuestNPCInteractListener : Listener {
             }
             eventQuests = currentEvent.quests
         }
-        if(eventQuests.isNullOrEmpty()) {
-            return
-        }
+        if(eventQuests.isNullOrEmpty()) return
         val questUser = questUserManager.getUser(player.uniqueId) ?: return
 
         if(questUser.activeQuests.any { eventQuests.contains(it.uniqueId) }) {
@@ -97,7 +95,7 @@ class QuestNPCInteractListener : Listener {
         object: BukkitRunnable() {
             override fun run() {
                 if(counter > (messagesSize - 1)) {
-                    questUser.giveActiveQuest(questsManager.getQuestBy(number) ?: return, true)
+                    questUser.giveActiveQuest(questsManager.getQuestBy(number) ?: return, false)
 
                     player.sendColoured(description)
 

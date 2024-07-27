@@ -9,18 +9,21 @@ import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-fun pushPlayerIfClose(targetLocation: Location, player: Player, threshold: Double, pushStrength: Double) {
-    val playerLocation = player.location
+fun Player.pushIfClose(targetLocation: Location, threshold: Double, pushStrength: Double) {
+    val playerLocation = location
 
     val distance = playerLocation.distance(targetLocation)
 
-    if (distance <= threshold) {
+    if (distance > 0 && distance <= threshold) {
         val direction = playerLocation.toVector().subtract(targetLocation.toVector()).normalize()
 
         val velocity = direction.multiply(pushStrength)
-        player.velocity = velocity
+        this.velocity = velocity
     }
 }
+
+
+
 
 fun Long.toTimeAgo(): String {
     val now = Instant.now()
@@ -66,55 +69,79 @@ fun Long.formatDuration(): String {
 
 
     if (years > 0 && months.toInt() == 0 && days.toInt() == 0) {
-        parts.add("" +
-                "${years} year")
-    }
-    else if (years > 0 && months > 0 && days.toInt() == 0) {
-        parts.add("" +
-                "$years ${if(years > 1) " years, " else " year, "} " +
-                "$months ${if (months > 1) " months" else " month"}")
-    }
-    else if (years > 0 && months > 0 && days > 0) {
-        parts.add("" +
-                "$years ${if(years > 1) " years, " else " year, "} " +
-                "$months ${if (months > 1) " months, " else " month, "}" +
-                "$days ${if (days > 1) " days" else " day"}")
-    }
-    else if (months > 0 && days.toInt() == 0) {
-        parts.add("" +
-                "$months month")
-    }
-    else if (months > 0 && days > 0) {
-        parts.add("" +
-                "$months ${if(months > 1) " months, " else " month, "} " +
-                "$days ${if (days > 1) " days" else " day"}")
-    }
-    else if (days.toInt() == 1 && hours.toInt() == 0) {
-        parts.add("" +
-                "$days day")
-    }
-    else if (days > 0 && hours > 0) {
-        parts.add("" +
-                "$days ${if(days > 1) " days, " else " day, "} " +
-                "$hours ${if (hours > 1) " hours" else " hour"}")
-    }
-    else if (hours.toInt() == 1) {
-        parts.add("" +
-                "$hours hour")
-    }
-    else if (hours > 0 && minutes > 0) {
-        parts.add("" +
-                "$hours ${if(hours > 1) " hours, " else " hour, "}" +
-                "$minutes ${if (minutes > 1) " minutes" else "minute"}")
-    }
-    else if (minutes.toInt() == 1 && seconds.toInt() == 0) {
-        parts.add("" +
-                "$minutes minute")
-    }
-    else if (minutes > 0 && seconds > 0) {
-        parts.add("" +
-                "$minutes ${if(minutes > 1) " minutes, " else " minut, "} " +
-                "$seconds ${if(seconds > 1) " seconds" else "second"}")
+        parts.add(
+            "" +
+                    "${years} year"
+        )
+    } else if (years > 0 && months > 0 && days.toInt() == 0) {
+        parts.add(
+            "" +
+                    "$years ${if (years > 1) " years, " else " year, "} " +
+                    "$months ${if (months > 1) " months" else " month"}"
+        )
+    } else if (years > 0 && months > 0 && days > 0) {
+        parts.add(
+            "" +
+                    "$years ${if (years > 1) " years, " else " year, "} " +
+                    "$months ${if (months > 1) " months, " else " month, "}" +
+                    "$days ${if (days > 1) " days" else " day"}"
+        )
+    } else if (months > 0 && days.toInt() == 0) {
+        parts.add(
+            "" +
+                    "$months month"
+        )
+    } else if (months > 0 && days > 0) {
+        parts.add(
+            "" +
+                    "$months ${if (months > 1) " months, " else " month, "} " +
+                    "$days ${if (days > 1) " days" else " day"}"
+        )
+    } else if (days.toInt() == 1 && hours.toInt() == 0) {
+        parts.add(
+            "" +
+                    "$days day"
+        )
+    } else if (days > 0 && hours > 0) {
+        parts.add(
+            "" +
+                    "$days ${if (days > 1) " days, " else " day, "} " +
+                    "$hours ${if (hours > 1) " hours" else " hour"}"
+        )
+    } else if (hours.toInt() == 1) {
+        parts.add(
+            "" +
+                    "$hours hour"
+        )
+    } else if (hours > 0 && minutes > 0) {
+        parts.add(
+            "" +
+                    "$hours ${if (hours > 1) " hours, " else " hour, "}" +
+                    "$minutes ${if (minutes > 1) " minutes" else "minute"}"
+        )
+    } else if (minutes.toInt() == 1 && seconds.toInt() == 0) {
+        parts.add(
+            "" +
+                    "$minutes minute"
+        )
+    } else if (minutes > 0 && seconds > 0) {
+        parts.add(
+            "" +
+                    "$minutes ${if (minutes > 1) " minutes, " else " minut, "} " +
+                    "$seconds ${if (seconds > 1) " seconds" else "second"}"
+        )
     }
     return parts.joinToString(" ")
+} 
+
+fun MutableMap<UUID, Long>.shouldSendMessage(uniqueId: UUID): Boolean {
+    if(this[uniqueId] == null) {
+        this[uniqueId] = System.currentTimeMillis()
+        return true
+    }
+    if(System.currentTimeMillis() - this[uniqueId]!! > 6000) {
+        this[uniqueId] = System.currentTimeMillis()
+        return true
+    }
+    return false
 }

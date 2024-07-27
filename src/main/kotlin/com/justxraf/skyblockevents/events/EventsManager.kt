@@ -1,6 +1,6 @@
 package com.justxraf.skyblockevents.events
 
-import com.justxdude.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.custom.NetherEvent
@@ -15,11 +15,13 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoField
+import java.util.*
 import java.util.concurrent.CompletableFuture.supplyAsync
 
 class EventsManager(private val componentsManager: ComponentsManager) {
     var currentEvent: Event
     var events: MutableMap<Int, EventData> = mutableMapOf()
+    val editSession = mutableMapOf<UUID, EventData>()
 
     //db
     private val client = SkyblockAPI.instance.database.client
@@ -97,12 +99,21 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     }
 
     private fun loadEvents() {
-        val documents = eventsCollection.find().toList()
-        documents.forEach { document ->
-            val eventJson = document.toJson()
-            val event = gson.fromJson(eventJson, EventData::class.java)
+        supplyAsync {
+            try {
+                val documents = eventsCollection.find().toList()
+                documents.forEach { document ->
+                    val eventJson = gson.toJson(document)
+                    val event = gson.fromJson(eventJson, EventData::class.java)
 
-            events[event.uniqueId] = event
+                    events[event.uniqueId] = event
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }.exceptionally { ex ->
+            println("Exception in async task: ${ex.message}")
+            ex.printStackTrace()
         }
     }
 
@@ -186,15 +197,15 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         }
     }
 
-    private fun shouldFinish(): Boolean = supplyAsync {
+    private fun shouldFinish(): Boolean {
         val zone = ZoneId.of("Europe/Berlin")
 
         val zdtLastUpdate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentEvent.startedAt), zone)
         val zdtNow = ZonedDateTime.now(zone)
 
-        zdtLastUpdate.get(ChronoField.DAY_OF_YEAR) != zdtNow.get(ChronoField.DAY_OF_YEAR) ||
+        return zdtLastUpdate.get(ChronoField.DAY_OF_YEAR) != zdtNow.get(ChronoField.DAY_OF_YEAR) ||
                 zdtLastUpdate.year != zdtNow.year
-    }.join()
+    }
 
     companion object {
         lateinit var instance: EventsManager

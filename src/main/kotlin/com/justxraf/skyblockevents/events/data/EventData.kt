@@ -19,6 +19,8 @@ data class EventData(
     var description: MutableList<String>,
     var spawnLocation: Location,
 
+    var requiredLevel: Int = 0,
+
     var portalLocation: Location? = null,
     var portalCuboid: Pair<Location, Location>? = null,
 
@@ -95,5 +97,15 @@ data class EventData(
     fun isRegenerativePlant(location: Location): Boolean {
         if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
         return regenerativePlants!!.containsKey(location)
+    }
+    fun isRegenerativeBlock(location: Location): Boolean {
+        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
+        return regenerativeBlocks!!.containsKey(location)
+    }
+    fun addRegenerativeBlock(location: Location, material: Material) {
+        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
+        if(regenerativeBlocks!!.contains(location)) return
+
+        regenerativeBlocks!![location] = material
     }
 }
