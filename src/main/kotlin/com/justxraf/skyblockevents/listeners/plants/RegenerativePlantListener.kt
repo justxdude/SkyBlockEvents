@@ -1,7 +1,8 @@
 package com.justxraf.skyblockevents.listeners.plants
 
-import com.justxdude.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
+import com.justxraf.skyblockevents.util.shouldSendMessage
 import org.bukkit.Material
 import org.bukkit.block.data.Ageable
 import org.bukkit.event.EventHandler
@@ -10,9 +11,11 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockGrowEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import java.util.*
 
 class RegenerativePlantListener : Listener {
     private val eventsManager = EventsManager.instance
+    private val timer: MutableMap<UUID, Long> = mutableMapOf()
 
     @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
@@ -33,7 +36,7 @@ class RegenerativePlantListener : Listener {
             val clickedBlock = event.clickedBlock ?: return
 
             if (clickedBlock.blockData !is Ageable) {
-                player.sendColoured("&cTen blok nie jest rośliną!")
+                player.sendColoured("&cTen blok nie jest rośliną! Użyj narzędzia do modyfikowania bloków.")
                 return
             }
 
@@ -98,7 +101,7 @@ class RegenerativePlantListener : Listener {
         if (!currentEvent.isRegenerativePlant(location)) return
 
         if(!currentEvent.canHarvestRegenerativePlant(location)) {
-            player.sendColoured("&cDaj temu urosnąć")
+            if(timer.shouldSendMessage(player.uniqueId)) player.sendColoured("&cDaj temu urosnąć")
             event.isCancelled = true
             return
         }

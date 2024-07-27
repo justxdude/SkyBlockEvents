@@ -1,7 +1,8 @@
 package com.justxraf.skyblockevents.listeners.players
 
 import com.justxdude.islandcore.islands.islandmanager.IslandManager.Companion.island
-import com.justxdude.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.Utils.toDate
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.questscore.quests.QuestsManager
@@ -27,9 +28,11 @@ class PlayerJoinListener : Listener {
 
         if(currentEvent.playersWhoJoined.contains(player.uniqueId)) {
             player.sendColoured("&9&m-".repeat(30))
-            player.sendColoured("&7Wydarzenie ${currentEvent.name} kończy się za ${(currentEvent.endsAt - System.currentTimeMillis()).formatDuration()}!")
+            player.sendColoured("&7Wydarzenie ${currentEvent.name} kończy się o ${currentEvent.endsAt.toDate()}!")
             player.sendColoured("&bWydobądź wszystkie surowce i wykonaj zadania, zanim minie czas!")
             player.sendColoured("&9&m-".repeat(30))
+
+            println(currentEvent.endsAt - System.currentTimeMillis())
         } else {
             currentEvent.startMessage().forEach {
                 player.sendColoured(it)
@@ -43,18 +46,23 @@ class PlayerJoinListener : Listener {
     @EventHandler
     fun onPlayerJoinWorld(event: PlayerJoinEvent) {
         val player = event.player
+        val user = player.asUser() ?: return
+
         val currentEvent = eventsManager.currentEvent
 
-        val location = player.location
-        if(currentEvent.spawnLocation == player.location) return
+        val events = eventsManager.events.values
+        // Check if the player is in the same world as any of the events
+        val worldEvent = events.firstOrNull { it.spawnLocation.world == player.world } ?: return
 
-        if(eventsManager.events.firstNotNullOfOrNull { it.value.spawnLocation.world == location.world } == null) return
+        if(worldEvent.uniqueId == currentEvent.uniqueId) {
+            if(currentEvent.playersWhoJoined.contains(player.uniqueId)) return
+        }
         if(player.hasPermission("hyperiol.events.admin")) return
 
         val skyBlockUser = player.asUser() ?: return
         val island = skyBlockUser.island
 
-        if(island != null) island.teleportHome(skyBlockUser, false, true)
+        if(island != null) island.teleportHome(skyBlockUser, false)
                 else SkyblockAPI.instance.spawn.teleport(player)
     }
 }

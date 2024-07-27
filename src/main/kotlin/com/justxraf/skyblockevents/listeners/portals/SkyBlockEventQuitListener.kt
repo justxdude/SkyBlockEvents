@@ -2,7 +2,6 @@ package com.justxraf.skyblockevents.listeners.portals
 
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxraf.skyblockevents.events.EventsManager
-import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.listeners.ListenersManager
 import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Material

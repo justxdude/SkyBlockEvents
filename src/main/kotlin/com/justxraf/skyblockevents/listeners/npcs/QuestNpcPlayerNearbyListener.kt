@@ -1,7 +1,7 @@
 package com.justxraf.skyblockevents.listeners.npcs
 
 import com.justxraf.skyblockevents.events.EventsManager
-import com.justxraf.skyblockevents.util.pushPlayerIfClose
+import com.justxraf.skyblockevents.util.pushIfClose
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerMoveEvent
@@ -15,6 +15,6 @@ class QuestNpcPlayerNearbyListener : Listener {
 
         if(questNpcLocation.world != event.player.world) return
 
-        pushPlayerIfClose(questNpcLocation, event.player, 1.3, .15)
+        event.player.pushIfClose(questNpcLocation, 1.3, .15)
     }
 }
