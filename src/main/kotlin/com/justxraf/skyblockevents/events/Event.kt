@@ -42,14 +42,13 @@ open class Event(
     open var startedAt: Long,
 
     open var endsAt: Long,
-    open var world: String,
 
     open var description: MutableList<String>,
     open var spawnLocation: Location,
 
     var requiredLevel: Int = 0,
 
-    var spawnRegion: Pair<Location, Location>? = null,
+    open var spawnRegion: Pair<Location, Location>? = null,
 
     open var portalLocation: Location? = null,
     open var portalCuboid: Pair<Location, Location>? = null,
@@ -706,7 +705,6 @@ open class Event(
         eventType,
         startedAt,
         endsAt,
-        world,
         description,
         spawnLocation,
         requiredLevel,

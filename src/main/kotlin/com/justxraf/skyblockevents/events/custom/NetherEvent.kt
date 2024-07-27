@@ -37,9 +37,10 @@ class NetherEvent(
     override var eventType: EventType,
     override var startedAt: Long,
     override var endsAt: Long,
-    override var world: String,
     override var description: MutableList<String>,
     override var spawnLocation: Location,
+
+    override var spawnRegion: Pair<Location, Location>? = null,
 
     override var portalLocation: Location? = null,
     override var portalCuboid: Pair<Location, Location>? = null,
@@ -69,8 +70,8 @@ class NetherEvent(
     ): Event(name,
     uniqueId, eventType,
     startedAt, endsAt,
-    world, description,
-    spawnLocation, 10, portalLocation,
+    description,
+    spawnLocation, 10, spawnRegion, portalLocation,
     portalCuboid, eventPortalLocation,
     eventPortalCuboid, questNPCLocation,
     quests, playersWhoJoined,

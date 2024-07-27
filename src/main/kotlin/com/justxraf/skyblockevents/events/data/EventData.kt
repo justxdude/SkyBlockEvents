@@ -12,16 +12,18 @@ import java.util.*
 data class EventData(
     var name: String,
     var uniqueId: Int,
+
     var eventType: EventType,
     var startedAt: Long,
+
     var endsAt: Long,
-    var world: String,
+
     var description: MutableList<String>,
     var spawnLocation: Location,
 
     var requiredLevel: Int = 0,
-    var spawnRegion: Pair<Location, Location>? = null,
 
+    var spawnRegion: Pair<Location, Location>? = null,
 
     var portalLocation: Location? = null,
     var portalCuboid: Pair<Location, Location>? = null,
@@ -50,10 +52,11 @@ data class EventData(
             startedAt,
 
             endsAt,
-            world,
 
             description,
             spawnLocation,
+
+            spawnRegion,
 
             portalLocation,
             portalCuboid,
@@ -62,15 +65,14 @@ data class EventData(
             eventPortalCuboid,
 
             questNPCLocation,
-
             quests,
+
             playersWhoJoined,
-
             spawnPointsCuboid,
-            entityTypeForSpawnPoint,
 
+            entityTypeForSpawnPoint,
             regenerativeBlocks,
-            regenerativePlants,
+            regenerativePlants
         )
         val questsCopy = quests?.toList()
 
