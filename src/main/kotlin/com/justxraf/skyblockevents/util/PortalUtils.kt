@@ -65,12 +65,3 @@ private fun getPosition(vector3: BlockVector3, loc: Location): Location {
         vector3.y.plus(loc.y),
         vector3.z.plus(loc.z))
 }
-fun isInCuboid(location: Location, pos1: Location, pos2: Location): Boolean {
-    val tolerance = 0.5
-    val (x1, y1, z1) = arrayOf(pos1.x, pos1.y, pos1.z - 1.0)
-    val (x2, y2, z2) = arrayOf(pos2.x, pos2.y, pos2.z - 1.0)
-
-    return location.x in (min(x1, x2 - tolerance))..(max(x1, x2 + tolerance)) &&
-            location.y in (min(y1, y2 - tolerance))..(max(y1, y2 + tolerance)) &&
-            location.z in (min(z1, z2 - tolerance))..(max(z1, z2 + tolerance))
-}

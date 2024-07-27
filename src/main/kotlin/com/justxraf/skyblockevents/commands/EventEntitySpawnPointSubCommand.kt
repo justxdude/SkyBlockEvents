@@ -81,7 +81,7 @@ object EventEntitySpawnPointSubCommand {
                     0.0,
                     selection.pos2.z.toDouble())
 
-                if(isInCuboid(player.location, pos1Location, pos2Location)) {
+                if(player.location.isInCuboid(pos1Location, pos2Location)) {
                     player.sendColoured("&cLokacje w której obecnie przebywasz jest na terenie innego spawnpointa! " +
                             "Przejdź trochę dalej i spróbuj ponownie. Użyj /event setentityspawnpoint <EntityType>.")
                     return false

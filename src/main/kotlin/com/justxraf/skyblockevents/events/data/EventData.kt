@@ -20,6 +20,8 @@ data class EventData(
     var spawnLocation: Location,
 
     var requiredLevel: Int = 0,
+    var spawnRegion: Pair<Location, Location>? = null,
+
 
     var portalLocation: Location? = null,
     var portalCuboid: Pair<Location, Location>? = null,
@@ -80,7 +82,7 @@ data class EventData(
     fun getSpawnPointIdAt(location: Location): Int? {
         if(spawnPointsCuboid == null) return null
         return spawnPointsCuboid?.entries?.firstNotNullOfOrNull { (key, pair) ->
-            if (isInCuboid(location, pair.first, pair.second)) key else null
+            if (location.isInCuboid(pair.first, pair.second)) key else null
         }
     }
     fun addQuest(id: Int) {

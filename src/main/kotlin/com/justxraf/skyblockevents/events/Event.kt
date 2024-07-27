@@ -49,6 +49,8 @@ open class Event(
 
     var requiredLevel: Int = 0,
 
+    var spawnRegion: Pair<Location, Location>? = null,
+
     open var portalLocation: Location? = null,
     open var portalCuboid: Pair<Location, Location>? = null,
 
@@ -429,7 +431,7 @@ open class Event(
             return null
         }
         return spawnPointsCuboid?.entries?.firstNotNullOfOrNull { (key, pair) ->
-            if (isInCuboid(location, pair.first, pair.second)) key else null
+            if (location.isInCuboid(pair.first, pair.second)) key else null
         }
     }
 
@@ -692,6 +694,12 @@ open class Event(
         }
     }
 
+    // Regions
+    fun isInSpawnRegion(location: Location): Boolean {
+        if(spawnRegion == null) return false
+        return location.isInCuboid(spawnRegion!!.first, spawnRegion!!.second)
+    }
+
     fun toData() = EventData(
         name,
         uniqueId,
@@ -702,6 +710,7 @@ open class Event(
         description,
         spawnLocation,
         requiredLevel,
+        spawnRegion,
         portalLocation,
         portalCuboid,
         eventPortalLocation,

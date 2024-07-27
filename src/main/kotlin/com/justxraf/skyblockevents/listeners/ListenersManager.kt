@@ -5,11 +5,8 @@ import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.listeners.npcs.QuestNPCInteractListener
 import com.justxraf.skyblockevents.listeners.blocks.RegenerativeBlockListener
+import com.justxraf.skyblockevents.listeners.entities.*
 import com.justxraf.skyblockevents.listeners.plants.RegenerativePlantListener
-import com.justxraf.skyblockevents.listeners.entities.EntityDamageListener
-import com.justxraf.skyblockevents.listeners.entities.EntityDeathListener
-import com.justxraf.skyblockevents.listeners.entities.EntityPortalListener
-import com.justxraf.skyblockevents.listeners.entities.NaturalEntitySpawnListener
 import com.justxraf.skyblockevents.listeners.npcs.QuestNpcPlayerNearbyListener
 import com.justxraf.skyblockevents.listeners.plants.RegenerativePlantGrowListener
 import com.justxraf.skyblockevents.listeners.players.PlayerDeathListener
@@ -34,6 +31,7 @@ class ListenersManager(private val plugin: JavaPlugin) {
             EntityDamageListener(),
             EntityDeathListener(),
             NaturalEntitySpawnListener(),
+            EntityTargetPlayerListener(),
         )
         // NPCs
         plugin.registerListeners(

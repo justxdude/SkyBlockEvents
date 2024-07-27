@@ -8,6 +8,8 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.math.max
+import kotlin.math.min
 
 fun Player.pushIfClose(targetLocation: Location, threshold: Double, pushStrength: Double) {
     val playerLocation = location
@@ -144,4 +146,14 @@ fun MutableMap<UUID, Long>.shouldSendMessage(uniqueId: UUID): Boolean {
         return true
     }
     return false
+}
+
+fun Location.isInCuboid(pos1: Location, pos2: Location): Boolean {
+    val tolerance = 0.5
+    val (x1, y1, z1) = arrayOf(pos1.x, pos1.y, pos1.z - 1.0)
+    val (x2, y2, z2) = arrayOf(pos2.x, pos2.y, pos2.z - 1.0)
+
+    return x in (min(x1, x2 - tolerance))..(max(x1, x2 + tolerance)) &&
+            y in (min(y1, y2 - tolerance))..(max(y1, y2 + tolerance)) &&
+            z in (min(z1, z2 - tolerance))..(max(z1, z2 + tolerance))
 }
