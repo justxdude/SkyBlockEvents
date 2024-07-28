@@ -1,7 +1,11 @@
 package com.justxraf.skyblockevents.events
 
+import com.github.supergluelib.foundation.async
+import com.ibm.icu.util.TimeUnit
+import com.justxdude.islandcore.utils.toLocationString
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
+import com.justxraf.networkapi.util.Utils.toDate
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.events.data.EventData
@@ -54,46 +58,62 @@ class EventsManager(private val componentsManager: ComponentsManager) {
                 saveCurrentEvent()
             }
             eventTimeCheck()
-        }, 0L, 40)
+        }, 0L, 20)
 
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             saveEvents()
         }, 0L, 20 * 20)
+
+        Bukkit.getScheduler().runTaskTimerAsynchronously(componentsManager.plugin, Runnable {
+            // Don't send if:
+            // player is in the current event world, player doesn't have high enough level, player set notifications to false.
+            val message = listOf(
+                "&9&m-".repeat(30),
+                "&a&lWydarzenie ${currentEvent.name} &atrwa!",
+                "&7",
+                "&7Dołącz do wydarzenia poprzez portal na spawnie (${currentEvent.portalLocation?.toLocationString()} (X,Y,Z)",
+                "&7I zdobądź surowce które nie są normalnie dostępne!",
+                "&7Te wydarzenie kończy się o ${currentEvent.endsAt.toDate()}.",
+                "&9&m-".repeat(30)
+            )
+        }, 0L, 20 * 240)
     }
 
     private fun eventTimeCheck() {
-        val timeLeft = currentEvent.endsAt - System.currentTimeMillis()
-        val timeMessages = mapOf(
-            1L to "sekundę",
-            2L to "2 sekundy",
-            3L to "3 sekundy",
-            4L to "4 sekundy",
-            5L to "5 sekund",
-            6L to "6 sekund",
-            7L to "7 sekund",
-            8L to "8 sekund",
-            9L to "9 sekund",
-            10L to "10 sekund",
-            60L to "minutę",
-            900L to "15 minut",
-            1800L to "30 minut",
-            3600L to "godzinę"
-        )
+        async {
+            val timeLeft = currentEvent.endsAt - System.currentTimeMillis()
+            val timeMessages = mapOf(
+                1L to "sekundę",
+                2L to "2 sekundy",
+                3L to "3 sekundy",
+                4L to "4 sekundy",
+                5L to "5 sekund",
+                6L to "6 sekund",
+                7L to "7 sekund",
+                8L to "8 sekund",
+                9L to "9 sekund",
+                10L to "10 sekund",
+                60L to "minutę",
+                900L to "15 minut",
+                1800L to "30 minut",
+                3600L to "godzinę"
+            )
 
-        val message = "Wydarzenie ${currentEvent.name} kończy się za %time!"
+            val message = "Wydarzenie ${currentEvent.name} kończy się za %time!"
 
-        val messageToSend = when (val timeLeftSeconds = timeLeft / 1000) {
-            in 1..10 -> "&c$message".replace("%time", timeMessages[timeLeftSeconds] ?: "")
-            60L -> "&c$message".replace("%time", timeMessages[60L] ?: "")
-            900L -> "&c$message".replace("%time", timeMessages[900L] ?: "")
-            1800L -> "&7$message".replace("%time", timeMessages[1800L] ?: "")
-            3600L -> "&7$message".replace("%time", timeMessages[3600L] ?: "")
-            else -> ""
-        }
+            val messageToSend = when (val timeLeftSeconds = timeLeft / 1000) {
+                in 1..10 -> "&c$message".replace("%time", timeMessages[timeLeftSeconds] ?: "")
+                60L -> "&c$message".replace("%time", timeMessages[60L] ?: "")
+                900L -> "&c$message".replace("%time", timeMessages[900L] ?: "")
+                1800L -> "&7$message".replace("%time", timeMessages[1800L] ?: "")
+                3600L -> "&7$message".replace("%time", timeMessages[3600L] ?: "")
+                else -> ""
+            }
 
-        if (messageToSend.isNotEmpty()) {
-            Bukkit.getOnlinePlayers().forEach {
-                it.sendColoured(messageToSend)
+            if (messageToSend.isNotEmpty()) {
+                Bukkit.getOnlinePlayers().forEach {
+                    it.sendColoured(messageToSend)
+                }
             }
         }
     }
@@ -161,7 +181,6 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             EventType.FISHING,
             0,
             0,
-            "",
             mutableListOf(""),
             Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0)
         ) // As a debug if there are no events in the database

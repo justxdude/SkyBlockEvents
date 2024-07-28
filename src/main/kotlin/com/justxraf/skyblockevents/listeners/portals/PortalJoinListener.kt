@@ -26,7 +26,7 @@ class PortalJoinListener : Listener {
         if(player.world != portalLocation.world) return
 
         val portalCuboid = currentEvent.portalCuboid ?: return
-        if(!isInCuboid(player.location, portalCuboid.first.clone().subtract(10.0, .0, 10.0), portalCuboid.second.clone().add(10.0, .0, 10.0))) return
+        if(!player.location.isInCuboid(portalCuboid.first.clone().subtract(10.0, .0, 10.0), portalCuboid.second.clone().add(10.0, .0, 10.0))) return
 
         val materialInLocation = player.world.getBlockAt(player.location.add(.3, .5,.3)).type
         if(materialInLocation != Material.NETHER_PORTAL) return

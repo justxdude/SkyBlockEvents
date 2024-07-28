@@ -5,6 +5,7 @@ import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.networkapi.util.Utils.toDate
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
+import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.questscore.quests.QuestsManager
 import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.events.EventsManager
@@ -27,17 +28,18 @@ class PlayerJoinListener : Listener {
         if(user.level < currentEvent.requiredLevel) return
 
         if(currentEvent.playersWhoJoined.contains(player.uniqueId)) {
-            player.sendColoured("&9&m-".repeat(30))
-            player.sendColoured("&7Wydarzenie ${currentEvent.name} kończy się o ${currentEvent.endsAt.toDate()}!")
-            player.sendColoured("&bWydobądź wszystkie surowce i wykonaj zadania, zanim minie czas!")
-            player.sendColoured("&9&m-".repeat(30))
-
-            println(currentEvent.endsAt - System.currentTimeMillis())
-        } else {
-            currentEvent.startMessage().forEach {
-                player.sendColoured(it)
+            if(user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)) {
+                player.sendColoured("&9&m-".repeat(30))
+                player.sendColoured("&a&lWydarzenie ${currentEvent.name} &akończy się o ${currentEvent.endsAt.toDate()}!")
+                player.sendColoured("&bWydobądź wszystkie surowce i wykonaj zadania, zanim minie czas!")
+                player.sendColoured("&9&m-".repeat(30))
             }
-
+        } else {
+            if(user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)) {
+                currentEvent.startMessage().forEach {
+                    player.sendColoured(it)
+                }
+            }
             val questUser = UsersManager.instance.getUser(player.uniqueId) ?: return
             currentEvent.restartQuestsFor(questUser)
         }
@@ -46,7 +48,6 @@ class PlayerJoinListener : Listener {
     @EventHandler
     fun onPlayerJoinWorld(event: PlayerJoinEvent) {
         val player = event.player
-        val user = player.asUser() ?: return
 
         val currentEvent = eventsManager.currentEvent
 

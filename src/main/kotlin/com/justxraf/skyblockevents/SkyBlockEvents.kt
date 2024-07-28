@@ -1,6 +1,7 @@
 package com.justxraf.skyblockevents
 
 import com.justxraf.skyblockevents.commands.EventCommand
+import com.justxraf.skyblockevents.commands.players.EventInfoCommand
 import com.justxraf.skyblockevents.components.ComponentsManager
 import de.oliver.fancynpcs.api.FancyNpcsPlugin
 import org.bukkit.Bukkit
@@ -21,30 +22,12 @@ class SkyBlockEvents : JavaPlugin() {
                 requireNotNull(world) { "Failed to load or create world 'world_nether_event'" }
             }
 
-            if(world.environment != World.Environment.NETHER) {
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-                println("The ${world.name} is not a nether world!")
-
-            }
-
             instance = this
             ComponentsManager.initialize(this)
             dataFolder.mkdirs()
 
             EventCommand()
+            EventInfoCommand()
         }catch (e: Exception) {
             e.printStackTrace()
         }

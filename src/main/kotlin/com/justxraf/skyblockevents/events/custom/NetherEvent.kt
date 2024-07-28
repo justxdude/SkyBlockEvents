@@ -98,10 +98,11 @@ class NetherEvent(
     }
 
     override fun startMessage(): List<String> = listOf(
-        "&9&m-".repeat(35),
-        "&aWydarzenie $name rozpoczęło się!",
-        "&aNa spawnie (${portalLocation?.toLocationString()} XYZ) pojawił się portal",
+        "&9&m-".repeat(30),
+        "&a&lWydarzenie $name &arozpoczęło się!",
+        "&7",
+        "&aNa spawnie (${portalLocation?.toLocationString()} X,Y,Z) pojawił się portal",
         "&aPrzez który możesz dołączyć do wydarzenia!",
-        "&9&m-".repeat(35),
+        "&9&m-".repeat(30),
     )
 }

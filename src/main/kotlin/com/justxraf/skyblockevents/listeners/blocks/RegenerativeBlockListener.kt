@@ -65,7 +65,7 @@ class RegenerativeBlockListener : Listener {
                 eventsManager.saveEvent(eventFromBlock)
 
             } else {
-                val selectedEvent = eventsManager.events.filter { (_, value) -> value.world == event.player.world.name }
+                val selectedEvent = eventsManager.events.filter { (_, value) -> value.spawnLocation.world == event.player.world }
                     .firstNotNullOfOrNull { it.value }
                 if (selectedEvent == null) {
                     player.sendColoured("&cNie możesz ustawić regenerujących bloków w tym świecie, ponieważ nie ma w nim żadnych wydarzeń!")
@@ -120,7 +120,7 @@ class RegenerativeBlockListener : Listener {
         val itemName = itemMeta.itemName
 
         if (itemName != "regenerative_block") return
-        val selectedEvent = eventsManager.events.filter { (_, value) -> value.world == event.player.world.name }
+        val selectedEvent = eventsManager.events.filter { (_, value) -> value.spawnLocation.world == event.player.world }
             .firstNotNullOfOrNull { it.value }
         if (selectedEvent == null) {
             player.sendColoured("&cNie możesz ustawić regenerującego bloku w tym świecie, ponieważ nie ma w nim żadnych wydarzeń!")
