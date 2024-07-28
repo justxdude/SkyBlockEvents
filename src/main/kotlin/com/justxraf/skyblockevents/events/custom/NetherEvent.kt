@@ -4,6 +4,7 @@ import com.justxdude.islandcore.utils.toLocationString
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.networkapi.util.Utils.toDate
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
+import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.questscore.component.ComponentsManager
 import com.justxraf.questscore.utils.sendMessages
 import com.justxraf.skyblockevents.SkyBlockEvents
@@ -93,7 +94,7 @@ class NetherEvent(
             *startMessage().toTypedArray()
         ) {
             val user = it.asUser()
-            user != null && user.level >= requiredLevel
+            user != null && user.level >= requiredLevel && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
         }
     }
 
@@ -101,8 +102,15 @@ class NetherEvent(
         "&9&m-".repeat(30),
         "&a&lWydarzenie $name &arozpoczęło się!",
         "&7",
-        "&aNa spawnie (${portalLocation?.toLocationString()} X,Y,Z) pojawił się portal",
-        "&aPrzez który możesz dołączyć do wydarzenia!",
+        "&7Na spawnie (${portalLocation?.toLocationString()} X,Y,Z) pojawił się portal",
+        "&7Przez który możesz dołączyć do wydarzenia!",
         "&9&m-".repeat(30),
+    )
+    override fun joinMessage(): List<String> = listOf(
+        "&9&m-".repeat(30),
+        "&a&lWydarzenie $name &arozpoczęło się!",
+        "&7",
+        "&7Wydarzenie dalej trwa! Dołącz do niego zanim minie czas!",
+        "&9&m-".repeat(30)
     )
 }

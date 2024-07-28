@@ -1,5 +1,9 @@
 package com.justxraf.skyblockevents.util
 
+import com.justxraf.networkapi.util.Utils.sendColoured
+import com.sk89q.worldedit.bukkit.WorldEditPlugin
+import com.sk89q.worldedit.regions.CuboidRegion
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import java.time.Duration
@@ -10,6 +14,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
+private val worldEdit = Bukkit.getPluginManager().getPlugin("WorldEdit") as WorldEditPlugin
 
 fun Player.pushIfClose(targetLocation: Location, threshold: Double, pushStrength: Double) {
     val playerLocation = location
@@ -156,4 +161,54 @@ fun Location.isInCuboid(pos1: Location, pos2: Location): Boolean {
     return x in (min(x1, x2 - tolerance))..(max(x1, x2 + tolerance)) &&
             y in (min(y1, y2 - tolerance))..(max(y1, y2 + tolerance)) &&
             z in (min(z1, z2 - tolerance))..(max(z1, z2 + tolerance))
+}
+fun Player.hasWorldEditSelection(sendMessage: Boolean = true): MutableMap<SelectionAnswer, Pair<Location, Location>?> {
+    try {
+        val session = worldEdit.getSession(player)
+        val selection = session.getSelection(session.selectionWorld)
+
+        if (selection is CuboidRegion) {
+            if (selection.pos1 == null) {
+                sendColoured("&cNie ustawiłes/as poprawnie pos1 w WorldEdit. Użyj /pos1 aby ustawić pierwszą pozycję dla regionu.")
+                return mutableMapOf(SelectionAnswer.NULL_POS1 to null)
+            }
+            if (selection.pos2 == null) {
+                sendColoured("&cNie ustawiles/as poprawnie pos2 w WorldEdit. Użyj /pos2 aby ustawić drugą pozycję dla regionu.")
+                return mutableMapOf(SelectionAnswer.NULL_POS2 to null)
+            }
+
+            val pos1Location = Location(
+                location.world,
+                selection.pos1.x.toDouble(),
+                0.0,
+                selection.pos1.z.toDouble())
+            val pos2Location = Location(
+                location.world,
+                selection.pos2.x.toDouble(),
+                0.0,
+                selection.pos2.z.toDouble())
+
+            return mutableMapOf(SelectionAnswer.CORRECT to Pair(pos1Location, pos2Location))
+        } else {
+            sendColoured("&cWystąpił błąd podczas tworzenia regionu! Ustaw region poprzez użycie /pos1 i /pos2 lub przy użyciu drewnianej siekierki //wand.")
+            return mutableMapOf(SelectionAnswer.NULL to null)
+        }
+    } catch (e: Exception) {
+        sendColoured("&cWystąpił błąd podczas tworzenia regionu! Ustaw region poprzez użycie /pos1 i /pos2 lub przy użyciu drewnianej siekierki //wand.")
+        return mutableMapOf(SelectionAnswer.NULL to null)
+    }
+}
+fun Player.getWorldEditSelection(): Pair<Location, Location>? {
+    val session = worldEdit.getSession(player)
+    val selection = session.getSelection(session.selectionWorld) as CuboidRegion
+    val pos1 = selection.pos1
+    val pos1Location = Location(world, pos1.x.toDouble(), pos1.y.toDouble() + 1, pos1.z.toDouble())
+    val pos2 = selection.pos2
+    val pos2Location = Location(world, pos2.x.toDouble(), pos2.y.toDouble() + 1, pos2.z.toDouble())
+
+    return Pair(pos1Location, pos2Location)
+}
+
+enum class SelectionAnswer {
+    NULL_POS1, NULL_POS2, NULL, CORRECT
 }

@@ -1,13 +1,13 @@
 package com.justxraf.skyblockevents.events
 
+import com.justxdude.skyblockapi.user.UserExtensions.asUser
+import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.networkapi.util.Utils.asUser
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.networkapi.util.Utils.toDate
-import com.justxraf.questscore.QuestsCore
-import com.justxraf.questscore.quests.QuestsManager
 import com.justxraf.questscore.users.QuestUser
 import com.justxraf.questscore.users.UsersManager
-import com.justxraf.skyblockevents.SkyBlockEvents
+import com.justxraf.questscore.utils.sendMessages
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.util.getEndOfDayMillis
@@ -138,6 +138,7 @@ open class Event(
         placeAllRegenerativePlants()
     }
     open fun startMessage(): List<String> = emptyList()
+    open fun joinMessage(): List<String> = emptyList()
     open fun runTasks() {
         task = object : BukkitRunnable() {
             override fun run() {

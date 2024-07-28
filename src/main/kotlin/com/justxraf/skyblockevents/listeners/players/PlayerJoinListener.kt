@@ -29,10 +29,9 @@ class PlayerJoinListener : Listener {
 
         if(currentEvent.playersWhoJoined.contains(player.uniqueId)) {
             if(user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)) {
-                player.sendColoured("&9&m-".repeat(30))
-                player.sendColoured("&a&lWydarzenie ${currentEvent.name} &akończy się o ${currentEvent.endsAt.toDate()}!")
-                player.sendColoured("&bWydobądź wszystkie surowce i wykonaj zadania, zanim minie czas!")
-                player.sendColoured("&9&m-".repeat(30))
+                currentEvent.joinMessage().forEach {
+                    player.sendColoured(it)
+                }
             }
         } else {
             if(user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)) {

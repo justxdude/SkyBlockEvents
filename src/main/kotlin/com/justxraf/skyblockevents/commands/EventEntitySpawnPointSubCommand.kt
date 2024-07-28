@@ -3,8 +3,7 @@ package com.justxraf.skyblockevents.commands
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.data.EventData
-import com.justxraf.skyblockevents.util.getFormattedName
-import com.justxraf.skyblockevents.util.isInCuboid
+import com.justxraf.skyblockevents.util.*
 import com.sk89q.worldedit.bukkit.WorldEditPlugin
 import com.sk89q.worldedit.regions.CuboidRegion
 import org.bukkit.Bukkit
@@ -57,44 +56,16 @@ object EventEntitySpawnPointSubCommand {
             player.sendColoured("&cTen EntityType nie istnieje! Użyj na przykład \"CREEPER\". Użyj /event setentityspawnpoint <EntityType>.")
             return false
         }
-        try {
-            val session = worldEdit.getSession(player)
-            val selection = session.getSelection(session.selectionWorld)
+        val selection = player.hasWorldEditSelection()
+        val selectionAnswer = selection.firstNotNullOfOrNull { it.key } ?: return false
 
-            if (selection is CuboidRegion) {
-                if (selection.pos1 == null) {
-                    player.sendColoured("&cNie ustawiłeś pierwszej pozycji! Użyj //pos1 aby ustawić pierwszą pozycję.")
-                    return false
-                }
-                if (selection.pos2 == null) {
-                    player.sendColoured("&cNie ustawiłeś drugiej pozycji! Użyj //pos2 aby ustawić drugą pozycję.")
-                    return false
-                }
-                val pos1Location = Location(
-                    sessionEvent.spawnLocation.world,
-                    selection.pos1.x.toDouble(),
-                    0.0,
-                    selection.pos1.z.toDouble())
-                val pos2Location = Location(
-                    sessionEvent.spawnLocation.world,
-                    selection.pos2.x.toDouble(),
-                    0.0,
-                    selection.pos2.z.toDouble())
-
-                if(player.location.isInCuboid(pos1Location, pos2Location)) {
-                    player.sendColoured("&cLokacje w której obecnie przebywasz jest na terenie innego spawnpointa! " +
-                            "Przejdź trochę dalej i spróbuj ponownie. Użyj /event setentityspawnpoint <EntityType>.")
-                    return false
-                }
-                return true
-            } else {
-                player.sendColoured("&cNie wyznaczyłeś poprawnie granic! Użyj //pos1 i //pos2 aby wyznaczyć granice.")
-                return false
-            }
-        } catch (e: Exception) {
-            player.sendColoured("&cNie wyznaczyłeś poprawnie granic! Użyj //pos1 i //pos2 aby wyznaczyć granice.")
+        val (pos1, pos2) = selection.firstNotNullOf { it.value }
+        if(player.location.isInCuboid(pos1, pos2)) {
+            player.sendColoured("&cW tej lokacji jest już inny region! Wybierz inny region.")
             return false
         }
+
+        return selectionAnswer == SelectionAnswer.CORRECT
     }
     private fun processRemove(player: Player, args: Array<String>, sessionEvent: EventData, currentEvent: Event?) {
         if(!shouldProcessRemove(player, args, sessionEvent)) return
@@ -113,12 +84,7 @@ object EventEntitySpawnPointSubCommand {
 
         val entityType = EntityType.valueOf(args[3].uppercase())
 
-        val session = worldEdit.getSession(player)
-        val selection = session.getSelection(session.selectionWorld) as CuboidRegion
-        val pos1 = selection.pos1
-        val pos1Location = Location(sessionEvent.spawnLocation.world, pos1.x.toDouble(), pos1.y.toDouble() + 1, pos1.z.toDouble())
-        val pos2 = selection.pos2
-        val pos2Location = Location(sessionEvent.spawnLocation.world, pos2.x.toDouble(), pos2.y.toDouble() + 1, pos2.z.toDouble())
+        val (pos1Location, pos2Location) = player.getWorldEditSelection() ?: return
 
         if(sessionEvent.spawnPointsCuboid == null) sessionEvent.spawnPointsCuboid = mutableMapOf()
         if(sessionEvent.entityTypeForSpawnPoint == null) sessionEvent.entityTypeForSpawnPoint = mutableMapOf()

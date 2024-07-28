@@ -5,6 +5,9 @@ import com.justxraf.networkapi.util.LocationUtil.isItSafe
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.EventData
+import com.justxraf.skyblockevents.util.SelectionAnswer
+import com.justxraf.skyblockevents.util.getWorldEditSelection
+import com.justxraf.skyblockevents.util.hasWorldEditSelection
 import org.bukkit.entity.Player
 
 object EventSetSpawnSubCommand {
@@ -22,12 +25,26 @@ object EventSetSpawnSubCommand {
         }
         return true
     }
-    fun process(player: Player, sessionEvent: EventData) {
+    private fun shouldProcessSetRegion(player: Player): Boolean {
+        val selection = player.hasWorldEditSelection()
+        val selectionAnswer = selection.firstNotNullOfOrNull { it.key } ?: return false
+
+        return selectionAnswer == SelectionAnswer.CORRECT
+    }
+    fun process(player: Player,args: Array<String>, sessionEvent: EventData) {
         if(!shouldProcess(player, sessionEvent)) return
+        val currentEvent = eventsManager.currentEvent
+
+        if(args[1].lowercase() == "region") {
+            if(!shouldProcessSetRegion(player)) return
+            val (loc1, loc2) = player.getWorldEditSelection() ?: return
+            sessionEvent.spawnRegion = Pair(loc1, loc2)
+            if(currentEvent.uniqueId == sessionEvent.uniqueId) currentEvent.spawnRegion = Pair(loc1, loc2)
+
+        }
 
         val location = player.location
         sessionEvent.spawnLocation = location
-        val currentEvent = eventsManager.currentEvent
 
         if(currentEvent.uniqueId == sessionEvent.uniqueId) currentEvent.spawnLocation = location
 

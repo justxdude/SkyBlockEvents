@@ -104,7 +104,7 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                 "entity" -> EventEntitySpawnPointSubCommand.process(player, args, eventData, currentEvent)
                 "quests" -> EventQuestSubCommand.process(player, args, eventData, currentEvent)
                 "setportal" -> EventSetPortalSubCommand.processSetPortal(player, args, eventData, currentEvent)
-                "setspawn" -> EventSetSpawnSubCommand.process(player, eventData)
+                "setspawn" -> EventSetSpawnSubCommand.process(player, args, eventData)
             }
         }
     }
@@ -127,6 +127,7 @@ class EventCommand : Command("event", arrayOf("e"), "hyperiol.events.admin") {
                 "getregenerative" -> listOf("plant", "block")
                 "setportal" -> EventPortalType.entries.map { it.name.lowercase() }
                 "start" -> eventsManager.events.map { it.value.uniqueId.toString() }
+                "setspawn" -> listOf("region")
                 else -> emptyList()
             }
         }
