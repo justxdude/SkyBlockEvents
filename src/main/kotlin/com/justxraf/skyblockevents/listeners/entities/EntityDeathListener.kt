@@ -12,17 +12,15 @@ import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDeathEvent
 
 class EntityDeathListener : Listener {
-    // TODO Checks: Add a check to control player death (there is an event in SkyblockAPI which controls it...)
-    // TODO Checks: Do the void fall (if y < -100 or sth)
     private val eventsManager = EventsManager.instance
 
     @EventHandler
     fun onEntityDeath(event: EntityDeathEvent) {
         val currentEvent = eventsManager.currentEvent
-        val world = currentEvent.world
+        val world = currentEvent.spawnLocation.world
 
         val entity = event.entity
-        val entityWorld = entity.world.name
+        val entityWorld = entity.world
 
         if(world != entityWorld) return // Need the same world as the event
 
