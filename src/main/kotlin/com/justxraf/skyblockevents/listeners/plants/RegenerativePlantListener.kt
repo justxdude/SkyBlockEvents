@@ -64,7 +64,7 @@ class RegenerativePlantListener : Listener {
                 eventsManager.saveEvent(eventFromBlock)
 
             } else { // Add
-                val selectedEvent = eventsManager.events.filter { (_, value) -> value.world == event.player.world.name }
+                val selectedEvent = eventsManager.events.filter { (_, value) -> value.spawnLocation.world == event.player.world }
                     .firstNotNullOfOrNull { it.value }
                 if (selectedEvent == null) {
                     player.sendColoured("&cNie możesz ustawić regenerującej rośliny w tym świecie, ponieważ nie ma w nim żadnych wydarzeń!")
