@@ -5,12 +5,17 @@ import com.ibm.icu.util.TimeUnit
 import com.justxdude.islandcore.utils.toLocationString
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
+import com.justxdude.skyblockapi.user.UserExtensions.asUser
+import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.networkapi.util.Utils.toDate
+import com.justxraf.questscore.utils.sendMessage
+import com.justxraf.questscore.utils.sendMessages
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.UpdateOneModel
 import com.mongodb.client.model.UpdateOptions
+import com.sun.org.apache.xml.internal.serializer.utils.Utils.messages
 import org.bson.Document
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -66,7 +71,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         Bukkit.getScheduler().runTaskTimerAsynchronously(componentsManager.plugin, Runnable {
             // Don't send if:
             // player is in the current event world, player doesn't have high enough level, player set notifications to false.
-            val message = listOf(
+            val message = mutableListOf(
                 "&9&m-".repeat(30),
                 "&a&lWydarzenie ${currentEvent.name} &atrwa!",
                 "&7",
@@ -75,6 +80,14 @@ class EventsManager(private val componentsManager: ComponentsManager) {
                 "&7Te wydarzenie kończy się o ${currentEvent.endsAt.toDate()}.",
                 "&9&m-".repeat(30)
             )
+            Bukkit.getOnlinePlayers().sendMessages(*message.toTypedArray()) {
+                val user = it.asUser()
+                user != null
+                        && it.world != currentEvent.spawnLocation.world
+                        && user.level >= currentEvent.requiredLevel
+                        && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
+            }
+
         }, 0L, 20 * 240)
     }
 
