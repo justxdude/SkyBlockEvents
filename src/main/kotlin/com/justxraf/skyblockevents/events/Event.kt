@@ -1,8 +1,8 @@
 package com.justxraf.skyblockevents.events
 
+import com.justxdude.islandcore.utils.toLocationString
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
-import com.justxraf.networkapi.util.Utils.asUser
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.networkapi.util.Utils.toDate
 import com.justxraf.questscore.users.QuestUser
@@ -100,6 +100,8 @@ open class Event(
         initializeSpawnPointsEntities()
 
         placeAllRegenerativePlants()
+
+        sendStartMessage()
     }
     open fun end() {
         clearPlayersQuests()
@@ -137,8 +139,6 @@ open class Event(
 
         placeAllRegenerativePlants()
     }
-    open fun startMessage(): List<String> = emptyList()
-    open fun joinMessage(): List<String> = emptyList()
     open fun runTasks() {
         task = object : BukkitRunnable() {
             override fun run() {
@@ -722,4 +722,28 @@ open class Event(
         regenerativeBlocks,
         regenerativePlants,
     )
+    fun startMessage(): List<String> = listOf(
+            "&9&m-".repeat(30),
+            "&a&lWydarzenie $name &arozpoczęło się!",
+            "&7",
+            "&7Na spawnie (${portalLocation?.toLocationString()} X,Y,Z) pojawił się portal",
+            "&7Przez który możesz dołączyć do wydarzenia!",
+            "&9&m-".repeat(30),
+        )
+
+    fun joinMessage(): List<String> = listOf(
+        "&9&m-".repeat(30),
+        "&a&lWydarzenie $name &arozpoczęło się!",
+        "&7",
+        "&7Wydarzenie dalej trwa! Dołącz do niego zanim minie czas!",
+        "&9&m-".repeat(30)
+    )
+    fun sendStartMessage() {
+        Bukkit.getOnlinePlayers().sendMessages(
+            *startMessage().toTypedArray()
+        ) {
+            val user = it.asUser()
+            user != null && user.level >= requiredLevel && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
+        }
+    }
 }

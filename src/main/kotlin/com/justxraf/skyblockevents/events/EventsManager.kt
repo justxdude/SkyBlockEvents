@@ -7,7 +7,6 @@ import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxraf.networkapi.util.Utils.toDate
 import com.justxraf.skyblockevents.components.ComponentsManager
-import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.events.data.EventData
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.UpdateOneModel

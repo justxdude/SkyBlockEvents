@@ -2,7 +2,6 @@ package com.justxraf.skyblockevents.listeners.blocks
 
 import com.justxraf.networkapi.util.Utils.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
-import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.listeners.ListenersManager
 import com.justxraf.skyblockevents.util.pushIfClose
 import org.bukkit.Material

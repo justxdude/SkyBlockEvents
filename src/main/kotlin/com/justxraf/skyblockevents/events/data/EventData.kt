@@ -2,7 +2,6 @@ package com.justxraf.skyblockevents.events.data
 
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
-import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Location
 import org.bukkit.Material
@@ -44,42 +43,35 @@ data class EventData(
     var regenerativePlants: MutableMap<Location, Material>? = null,
 ) {
     fun fromData(): Event {
-        val netherEvent = NetherEvent(
+        val event = Event(
             name,
             uniqueId,
-
             eventType,
             startedAt,
-
             endsAt,
-
             description,
             spawnLocation,
-
+            requiredLevel,
             spawnRegion,
-
             portalLocation,
             portalCuboid,
-
             eventPortalLocation,
             eventPortalCuboid,
-
             questNPCLocation,
             quests,
-
             playersWhoJoined,
             spawnPointsCuboid,
-
             entityTypeForSpawnPoint,
             regenerativeBlocks,
             regenerativePlants
         )
+
         val questsCopy = quests?.toList()
 
         questsCopy?.forEach {
-            netherEvent.addQuest(it)
+            event.addQuest(it)
         }
-        return netherEvent
+        return event
     }
     fun getSpawnPointIdAt(location: Location): Int? {
         if(spawnPointsCuboid == null) return null

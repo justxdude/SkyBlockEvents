@@ -1,7 +1,6 @@
 package com.justxraf.skyblockevents.listeners.entities
 
 import com.justxraf.skyblockevents.events.EventsManager
-import com.justxraf.skyblockevents.events.custom.NetherEvent
 import com.justxraf.skyblockevents.listeners.ListenersManager
 import org.bukkit.entity.Monster
 import org.bukkit.entity.Player
