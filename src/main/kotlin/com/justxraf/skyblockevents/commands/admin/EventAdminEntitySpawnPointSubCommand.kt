@@ -2,16 +2,10 @@ package com.justxraf.skyblockevents.commands
 
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.Event
-import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.events.event.EventEntityCuboid
 import com.justxraf.skyblockevents.util.*
-import com.sk89q.worldedit.bukkit.WorldEditPlugin
-import com.sk89q.worldedit.regions.CuboidRegion
 import io.lumine.mythic.api.MythicProvider
-import org.bukkit.Bukkit
-import org.bukkit.Location
-import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import kotlin.jvm.optionals.getOrNull
 
@@ -98,7 +92,7 @@ object EventEntitySpawnPointSubCommand {
         player.sendColoured("&7Poprawnie usunięto spawnpoint w którym przebywałeś(aś).")
 
         currentEvent?.let {
-            it.eventEntitiesManager.removeCuboidBy(player.location)
+            it.eventEntitiesHandler.removeCuboidBy(player.location)
             player.sendColoured("&7Również usunięto spawnpoint w obecnym wydarzeniu.")
         }
     }
@@ -119,7 +113,7 @@ object EventEntitySpawnPointSubCommand {
         player.sendColoured("&7Zapisano region dla wydarzenia #${sessionEvent.uniqueId} " +
                 "z typem potwora ${args[3]} na Twojej lokacji, ID regionu to #${eventEntityCuboid.id}.")
 
-        currentEvent?.eventEntitiesManager?.createCuboid(eventEntityCuboid)
+        currentEvent?.eventEntitiesHandler?.createCuboid(eventEntityCuboid)
 
     }
     fun process(player: Player, args: Array<String>, sessionEvent: EventData, currentEvent: Event?) {

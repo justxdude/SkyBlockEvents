@@ -34,7 +34,7 @@ object EventSetRegenerativeBlocksCommand {
 
         val currentEvent = EventsManager.instance.currentEvent
         if(currentEvent.uniqueId == sessionEvent.uniqueId) {
-            currentEvent.regenerativeMaterialsManager.addRegenerativeMaterial(type, args[2].contains("true"))
+            currentEvent.regenerativeMaterialsHandler.addRegenerativeMaterial(type, args[2].contains("true"))
         }
 
         player.sendColoured("&7Dodano materiał ${type.name} do wydarzenia ${sessionEvent.uniqueId}!")
