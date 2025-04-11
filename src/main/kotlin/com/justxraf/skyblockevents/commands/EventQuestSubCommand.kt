@@ -1,7 +1,7 @@
 package com.justxraf.skyblockevents.commands
 
 import com.justxraf.networkapi.util.LocationUtil.isItSafe
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.questscore.quests.QuestsManager
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventsManager
@@ -20,7 +20,7 @@ object EventQuestSubCommand {
      */
     private fun shouldProcess(player: Player, args: Array<String>): Boolean {
         when(args[1].lowercase()) {
-            "setnpc", "list", "clear" -> if(args.size == 2) return true
+            "setnpc", "list", "clear", "reloadnpc" -> if(args.size == 2) return true
             "add", "remove" -> if(args.size == 3) return true
         }
         val usage = listOf(
@@ -129,6 +129,29 @@ object EventQuestSubCommand {
             return false
         }
     }
+    private fun shouldProcessReloadNPC(player: Player, sessionEvent: EventData): Boolean {
+        val currentEvent = eventsManager.currentEvent
+        if(currentEvent?.uniqueId != sessionEvent.uniqueId) {
+            player.sendColoured("&cMożesz zresetować NPC tylko gdy te wydarzenie jest aktywne.")
+            return false
+        }
+        if(sessionEvent.questNPCLocation == null) {
+            player.sendColoured("&cWydarzenie #${sessionEvent.uniqueId} nie ma ustawionego NPC dla zadań. " +
+                    "Ustaw je przy użyciu komendy /event quests setnpc.")
+            return false
+        }
+        return true
+    }
+    private fun processReloadNPC(player: Player, sessionEvent: EventData) {
+        if(!shouldProcessReloadNPC(player, sessionEvent)) return
+
+        val currentEvent = eventsManager.currentEvent
+
+        currentEvent?.removeNPC()
+        currentEvent?.spawnQuestNPC()
+
+        player.sendColoured("&7Zrestartowano NPC w wydarzeniu #${sessionEvent.uniqueId}.")
+    }
     private fun processList(player: Player, args: Array<String>, sessionEvent: EventData) {
         if(!shouldProcessList(player, args, sessionEvent)) return
         val message = sessionEvent.quests?.joinToString(", ")
@@ -172,6 +195,7 @@ object EventQuestSubCommand {
         if(!shouldProcessSetNpc(player, args, sessionEvent)) return
 
         sessionEvent.questNPCLocation = player.location
+        currentEvent?.questNPCLocation = player.location
 
         currentEvent?.removeNPC()
         currentEvent?.spawnQuestNPC()
@@ -187,6 +211,7 @@ object EventQuestSubCommand {
             "setnpc" -> processSetNpc(player, args, sessionEvent, currentEvent)
             "clear" -> processClear(player, args, sessionEvent, currentEvent)
             "list" -> processList(player, args, sessionEvent)
+            "reloadnpc" -> processReloadNPC(player, sessionEvent)
         }
     }
 }

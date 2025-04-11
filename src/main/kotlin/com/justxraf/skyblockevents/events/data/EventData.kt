@@ -2,17 +2,22 @@ package com.justxraf.skyblockevents.events.data
 
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
+import com.justxraf.skyblockevents.events.event.EventEntitiesManager
+import com.justxraf.skyblockevents.events.event.EventEntityCuboid
+import com.justxraf.skyblockevents.events.portals.EventPortal
+import com.justxraf.skyblockevents.events.portals.EventPortalType
+import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterial
+import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsManager
 import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.entity.EntityType
 import java.util.*
 
 data class EventData(
     var name: String,
     var uniqueId: Int,
 
-    var eventType: EventType,
+    var type: EventType,
     var startedAt: Long,
 
     var endsAt: Long,
@@ -22,86 +27,94 @@ data class EventData(
 
     var requiredLevel: Int = 0,
 
+    var portals: MutableMap<EventPortalType, EventPortal>? = null,
     var spawnRegion: Pair<Location, Location>? = null,
-
-    var portalLocation: Location? = null,
-    var portalCuboid: Pair<Location, Location>? = null,
-
-    var eventPortalLocation: Location? = null,
-    var eventPortalCuboid: Pair<Location, Location>? = null,
 
     var questNPCLocation: Location? = null,
 
     var quests: MutableList<Int>? = null,
     var playersWhoJoined: MutableList<UUID> = mutableListOf(),
 
-    var spawnPointsCuboid: MutableMap<Int, Pair<Location, Location>>? = null,
+    var eventEntityCuboids: MutableMap<Int, EventEntityCuboid>? = null,
 
-    var entityTypeForSpawnPoint: MutableMap<Int, EntityType>? = null,
+    var regenerativeMaterials: MutableList<RegenerativeMaterial>? = null,
 
-    var regenerativeBlocks: MutableMap<Location, Material>? = null,
-    var regenerativePlants: MutableMap<Location, Material>? = null,
-) {
+    ) {
     fun fromData(): Event {
+        val regenerativeBlocksManager = RegenerativeMaterialsManager(regenerativeMaterials ?: mutableListOf())
+        val eventEntitiesManager = EventEntitiesManager(eventEntityCuboids ?: mutableMapOf())
+
         val event = Event(
             name,
             uniqueId,
-            eventType,
+            type,
             startedAt,
             endsAt,
             description,
             spawnLocation,
+            regenerativeBlocksManager,
+            eventEntitiesManager,
             requiredLevel,
+            portals,
             spawnRegion,
-            portalLocation,
-            portalCuboid,
-            eventPortalLocation,
-            eventPortalCuboid,
             questNPCLocation,
             quests,
             playersWhoJoined,
-            spawnPointsCuboid,
-            entityTypeForSpawnPoint,
-            regenerativeBlocks,
-            regenerativePlants
         )
-
         val questsCopy = quests?.toList()
 
         questsCopy?.forEach {
             event.addQuest(it)
         }
+        portals?.forEach {
+            it.value.event = event
+        }
+
         return event
     }
-    fun getSpawnPointIdAt(location: Location): Int? {
-        if(spawnPointsCuboid == null) return null
-        return spawnPointsCuboid?.entries?.firstNotNullOfOrNull { (key, pair) ->
-            if (location.isInCuboid(pair.first, pair.second)) key else null
+
+    // Entity Cuboids
+
+    fun isInEntityCuboid(location: Location): Boolean {
+        if(eventEntityCuboids.isNullOrEmpty()) return false
+        return eventEntityCuboids!!.entries.any { (_, value) ->
+            location.isInCuboid(value.cuboid)
         }
     }
+    fun removeEntityCuboidBy(location: Location) {
+        if(eventEntityCuboids.isNullOrEmpty()) return
+        eventEntityCuboids!!.entries.removeIf { (_, value) ->
+            location.isInCuboid(value.cuboid)
+        }
+    }
+    fun getEntityCuboidBy(location: Location): Int? {
+        if(eventEntityCuboids.isNullOrEmpty()) return null
+        return eventEntityCuboids!!.firstNotNullOfOrNull { (key, it) ->
+            if(location.isInCuboid(it.cuboid)) key else null
+        }
+    }
+
+
     fun addQuest(id: Int) {
         if(quests == null) quests = mutableListOf()
         if(quests!!.contains(id)) return
         quests!!.add(id)
     }
-    fun addRegenerativePlant(location: Location, material: Material) {
-        if(regenerativePlants == null) regenerativePlants = mutableMapOf()
-        if(regenerativePlants!!.contains(location)) return
+    fun isRegenerativeMaterial(material: Material): Boolean {
+        if(regenerativeMaterials == null) regenerativeMaterials = mutableListOf()
+        return regenerativeMaterials!!.any { it.material == material }
+    }
+    fun addRegenerativeMaterial(
+        material: Material,
+        isHarvestable: Boolean,
+    ) {
+        if(regenerativeMaterials == null) regenerativeMaterials = mutableListOf()
+        if(isRegenerativeMaterial(material)) return
 
-        regenerativePlants!![location] = material
+        regenerativeMaterials!!.add(RegenerativeMaterial(material, isHarvestable))
     }
-    fun isRegenerativePlant(location: Location): Boolean {
-        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
-        return regenerativePlants!!.containsKey(location)
-    }
-    fun isRegenerativeBlock(location: Location): Boolean {
-        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
-        return regenerativeBlocks!!.containsKey(location)
-    }
-    fun addRegenerativeBlock(location: Location, material: Material) {
-        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
-        if(regenerativeBlocks!!.contains(location)) return
-
-        regenerativeBlocks!![location] = material
+    fun removeRegenerativeMaterial(material: Material) {
+        if(regenerativeMaterials.isNullOrEmpty()) return
+        regenerativeMaterials?.removeIf { it.material == material }
     }
 }

@@ -7,27 +7,22 @@ import org.bukkit.Material
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 
-class RegenerativeBlocksManager(
-    var regenerativeBlocks: MutableList<Material> = mutableListOf(),
+class RegenerativeMaterialsManager(
+    var regenerativeMaterials: MutableList<RegenerativeMaterial> = mutableListOf(),
     private var task: BukkitTask? = null,
 ) {
     @Transient
-    private var brokenBlocks: MutableMap<Location, RegenerativeBlock> = mutableMapOf()
+    private var materialsByMaterial: MutableMap<Material, RegenerativeMaterial> = mutableMapOf()
 
     fun setup(event: Event) {
-        println("Starting regenerative blocks manager with ${regenerativeBlocks.size} regenerative blocks!")
+        assignMaterials()
 
-        assignLocations()
-
-        reloadRegenerativeBlocks(event)
+        reloadRegenerativeMaterials()
         startTask(event)
-
-        println("RegenerativeBlocksManager is now on!")
     }
-
-    private fun assignLocations() {
-        regenerativeBlockLocations = mutableMapOf()
-        regenerativeBlocks.associateByTo(regenerativeBlockLocations) { it.location }
+    private fun assignMaterials() {
+        materialsByMaterial = mutableMapOf()
+        regenerativeMaterials.associateByTo(materialsByMaterial) { it.material }
     }
 
     fun reload(event: Event) {
@@ -38,50 +33,51 @@ class RegenerativeBlocksManager(
     fun startTask(event: Event) {
         task = object : BukkitRunnable() {
             override fun run() {
-                checkRegenerativeBlocks(event)
+                checkRegenerativeMaterials(event)
             }
-        }.runTaskTimer(SkyBlockEvents.instance, 0, 20 * 1) // Check every 5 seconds.
+        }.runTaskTimer(SkyBlockEvents.instance, 0, 20 * 1)
     }
     fun stop() {
         task?.cancel()
     }
-    fun addRegenerativeBlock(
-        event: Event,
-        location: Location,
+    fun addRegenerativeMaterial(
         material: Material,
         isHarvestable: Boolean,
     ) {
-        if(isRegenerativeBlock(location)) return
+        if(isRegenerative(material)) return
 
-        val newBlock = RegenerativeBlock(material, location, isHarvestable)
-        newBlock.setup(event)
+        val newMaterial = RegenerativeMaterial(material, isHarvestable)
+        newMaterial.setup()
 
-
-        regenerativeBlocks.add(RegenerativeBlock(material, location, isHarvestable))
+        regenerativeMaterials.add(newMaterial)
+        materialsByMaterial.put(material, newMaterial)
     }
 
-    fun removeBlock(location: Location) {
-        val block = regenerativeBlockLocations[location] ?: return
-        block.remove()
+    fun removeMaterial(material: Material) {
+        if(!isRegenerative(material)) return
 
-        regenerativeBlocks.remove(block)
-        regenerativeBlockLocations.remove(location)
-    }
-    fun isRegenerativeBlock(location: Location): Boolean =
-        regenerativeBlockLocations[location] != null
+        val regenerativeMaterial = materialsByMaterial[material] ?: return
+        regenerativeMaterial.end()
 
-    fun breakRegenerativeBlockAt(location: Location) {
-        val block = regenerativeBlockLocations[location] ?: return
-        block.remove()
+        materialsByMaterial.remove(material)
+        regenerativeMaterials.remove(regenerativeMaterial)
     }
-    fun canBreakRegenerativeBlockAt(location: Location): Boolean {
-        val block = regenerativeBlockLocations[location] ?: return false
-        return block.canBreak()
+    fun isRegenerative(material: Material): Boolean =
+        materialsByMaterial[material] != null
+
+    fun breakRegenerativeMaterial(location: Location, material: Material) {
+        val regenerativeMaterial = materialsByMaterial[material] ?: return
+
+        regenerativeMaterial.breakMaterial(location)
     }
-    private fun reloadRegenerativeBlocks(event: Event) {
-        regenerativeBlocks.forEach { it.reload(event) }
+    fun canBreakMaterialAt(location: Location, material: Material): Boolean {
+        val regenerativeMaterial = materialsByMaterial[material] ?: return false
+        return regenerativeMaterial.canBreak(location)
     }
-    private fun checkRegenerativeBlocks(event: Event) {
-        regenerativeBlockLocations.values.forEach { it.check(event) }
+    private fun reloadRegenerativeMaterials() {
+        regenerativeMaterials.forEach { it.reload() }
+    }
+    private fun checkRegenerativeMaterials(event: Event) {
+        regenerativeMaterials.forEach { it.checkBrokenBlocks(event) }
     }
 }

@@ -1,6 +1,6 @@
 package com.justxraf.skyblockevents.commands
 
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import org.bukkit.entity.Player

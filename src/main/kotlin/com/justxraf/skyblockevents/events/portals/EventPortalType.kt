@@ -1,4 +1,5 @@
-package com.justxraf.skyblockevents.events
+package com.justxraf.skyblockevents.events.portals
 
-class EventPortalType {
+enum class EventPortalType {
+    EVENT, NORMAL
 }

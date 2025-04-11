@@ -1,27 +1,30 @@
 package com.justxraf.skyblockevents.commands
 
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.Event
+import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.EventData
+import com.justxraf.skyblockevents.events.event.EventEntityCuboid
 import com.justxraf.skyblockevents.util.*
 import com.sk89q.worldedit.bukkit.WorldEditPlugin
 import com.sk89q.worldedit.regions.CuboidRegion
+import io.lumine.mythic.api.MythicProvider
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
+import kotlin.jvm.optionals.getOrNull
 
 object EventEntitySpawnPointSubCommand {
     /*
     /event entity spawnpoint remove
-    /event entity spawnpoint create <EntityType>
+    /event entity spawnpoint create <entity_name> <level> <limit> <spawn_delay>
 
      */
-    private val worldEdit = Bukkit.getPluginManager().getPlugin("WorldEdit") as WorldEditPlugin
 
     private fun shouldProcess(player: Player, args: Array<String>, sessionEvent: EventData): Boolean {
         if(args.size < 3) {
-            player.sendColoured("&cNiewystarczająca ilość argumentów! Użyj /event entity spawnpoint remove lub /event entity spawnpoint create <typ>.")
+            player.sendColoured("&cNiewystarczająca ilość argumentów! Użyj /event entity spawnpoint remove lub /event entity spawnpoint create <nazwa potwora> <poziom> <limit> <opóźnienie>.")
             return false
         }
         val world = sessionEvent.spawnLocation.world
@@ -31,36 +34,56 @@ object EventEntitySpawnPointSubCommand {
             return false
         }
         if(args[1].lowercase() != "spawnpoint") {
-            player.sendColoured("&cNiepoprawny drugi argument. Użyj /event entity spawnpoint remove lub /event entity spawnpoint create <typ>.")
+            player.sendColoured("&cNiepoprawny drugi argument. Użyj /event entity spawnpoint remove lub /event entity spawnpoint create <nazwa potwora> <poziom> <limit> <opóźnienie>.")
             return false
         }
         val arguments = listOf("remove", "create")
         if(!arguments.contains(args[2])) {
-            player.sendColoured("&cNiepoprawny trzeci argument. Użyj /event entity spawnpoint remove lub /event entity spawnpoint create <typ>.")
+            player.sendColoured("&cNiepoprawny trzeci argument. Użyj /event entity spawnpoint remove lub /event entity spawnpoint create <nazwa potwora> <poziom> <limit> <opóźnienie>.")
             return false
         }
 
         return true
     }
     private fun shouldProcessRemove(player: Player, args: Array<String>, sessionEvent: EventData): Boolean {
-        val entitySpawnpointID = sessionEvent.getSpawnPointIdAt(player.location)
-        if(entitySpawnpointID == null) {
+        if(!sessionEvent.isInEntityCuboid(player.location)) {
             player.sendColoured("&cNie ma spawnpointa na lokacji w której się obecnie znajdujesz.")
             return false
         }
         return true
     }
+    // /event entity spawnpoint create <entity_name> <level> <limit> <spawn_delay>
     private fun shouldProcessCreate(player: Player, args: Array<String>, sessionEvent: EventData): Boolean {
-        val entityType = EntityType.entries.firstOrNull { it.name.uppercase() == args[3].uppercase() }
-        if(entityType == null) {
-            player.sendColoured("&cTen EntityType nie istnieje! Użyj na przykład \"CREEPER\". Użyj /event setentityspawnpoint <EntityType>.")
+        if(args.size != 6) {
+            player.sendColoured("&cNiepoprawna ilość argumentów! Użyj /event entity spawnpoint create <nazwa potwora> <poziom> <limit> <opóźnienie>.")
             return false
         }
+
+        val mythicManager= MythicProvider.get().mobManager
+        val mob = mythicManager.getMythicMob(args[3]).getOrNull()
+
+        if(mob == null) {
+            player.sendColoured("&cNiepoprawna nazwa potwora! Użyj /event entity spawnpoint create <nazwa potwora> <poziom> <limit> <opóźnienie>.")
+            return false
+        }
+        try {
+            val level = args[4].toInt()
+        } catch (e: NumberFormatException){
+            player.sendColoured("&cNiepoprawny poziom!")
+            return false
+        }
+        try {
+            val limit = args[5].toInt()
+        } catch (e: NumberFormatException){
+            player.sendColoured("&cNiepoprawny limit!")
+            return false
+        }
+
         val selection = player.hasWorldEditSelection()
         val selectionAnswer = selection.firstNotNullOfOrNull { it.key } ?: return false
 
-        val (pos1, pos2) = selection.firstNotNullOf { it.value }
-        if(player.location.isInCuboid(pos1, pos2)) {
+        val cuboid = selection.firstNotNullOf { it.value }
+        if(player.location.isInCuboid(cuboid)) {
             player.sendColoured("&cW tej lokacji jest już inny region! Wybierz inny region.")
             return false
         }
@@ -70,42 +93,34 @@ object EventEntitySpawnPointSubCommand {
     private fun processRemove(player: Player, args: Array<String>, sessionEvent: EventData, currentEvent: Event?) {
         if(!shouldProcessRemove(player, args, sessionEvent)) return
 
-        val spawnPoint = sessionEvent.getSpawnPointIdAt(player.location) ?: return
-        sessionEvent.spawnPointsCuboid?.remove(spawnPoint)
-        sessionEvent.entityTypeForSpawnPoint?.remove(spawnPoint)
+        sessionEvent.removeEntityCuboidBy(player.location)
 
         player.sendColoured("&7Poprawnie usunięto spawnpoint w którym przebywałeś(aś).")
 
-        currentEvent?.spawnPointsCuboid?.remove(spawnPoint)
-        currentEvent?.entityTypeForSpawnPoint?.remove(spawnPoint)
+        currentEvent?.let {
+            it.eventEntitiesManager.removeCuboidBy(player.location)
+            player.sendColoured("&7Również usunięto spawnpoint w obecnym wydarzeniu.")
+        }
     }
     private fun processCreate(player: Player, args: Array<String>, sessionEvent: EventData, currentEvent: Event?) {
         if(!shouldProcessCreate(player, args, sessionEvent)) return
 
-        val entityType = EntityType.valueOf(args[3].uppercase())
 
         val (pos1Location, pos2Location) = player.getWorldEditSelection() ?: return
 
-        if(sessionEvent.spawnPointsCuboid == null) sessionEvent.spawnPointsCuboid = mutableMapOf()
-        if(sessionEvent.entityTypeForSpawnPoint == null) sessionEvent.entityTypeForSpawnPoint = mutableMapOf()
+        if(sessionEvent.eventEntityCuboids.isNullOrEmpty()) sessionEvent.eventEntityCuboids = mutableMapOf()
 
-        val nextID = if(sessionEvent.spawnPointsCuboid.isNullOrEmpty()) 0 else sessionEvent.spawnPointsCuboid?.keys?.max() ?: 0
+        val nextID = if(sessionEvent.eventEntityCuboids.isNullOrEmpty()) 0 else sessionEvent.eventEntityCuboids?.keys?.max() ?: 0
 
-        sessionEvent.spawnPointsCuboid!![nextID + 1] = Pair(pos1Location, pos2Location)
-        sessionEvent.entityTypeForSpawnPoint!![nextID + 1] = entityType
+        val eventEntityCuboid = EventEntityCuboid(nextID + 1, args[3], Pair(pos1Location, pos2Location), args[4].toInt(), args[5].toInt())
 
-        player.sendColoured("&7Zapisano spawnpoint dla wydarzenia #${sessionEvent.uniqueId} " +
-                "z typem potwora ${entityType.getFormattedName()} na Twojej lokacji.")
+        sessionEvent.eventEntityCuboids!![nextID + 1] = eventEntityCuboid
 
-        if(currentEvent != null) {
-            if(currentEvent.spawnPointsCuboid == null) currentEvent.spawnPointsCuboid = mutableMapOf()
-            if(currentEvent.entityTypeForSpawnPoint == null) currentEvent.entityTypeForSpawnPoint = mutableMapOf()
+        player.sendColoured("&7Zapisano region dla wydarzenia #${sessionEvent.uniqueId} " +
+                "z typem potwora ${args[3]} na Twojej lokacji, ID regionu to #${eventEntityCuboid.id}.")
 
-            currentEvent.spawnPointsCuboid!![nextID + 1] = Pair(pos1Location, pos2Location)
-            currentEvent.entityTypeForSpawnPoint!![nextID + 1] = entityType
+        currentEvent?.eventEntitiesManager?.createCuboid(eventEntityCuboid)
 
-            currentEvent.spawnPointsEntities?.put(nextID + 1, mutableMapOf())
-        }
     }
     fun process(player: Player, args: Array<String>, sessionEvent: EventData, currentEvent: Event?) {
         if(!shouldProcess(player, args, sessionEvent)) return

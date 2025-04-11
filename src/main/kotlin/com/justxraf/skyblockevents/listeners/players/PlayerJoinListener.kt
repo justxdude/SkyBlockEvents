@@ -1,23 +1,19 @@
 package com.justxraf.skyblockevents.listeners.players
 
 import com.justxdude.islandcore.islands.islandmanager.IslandManager.Companion.island
-import com.justxraf.networkapi.util.Utils.sendColoured
-import com.justxraf.networkapi.util.Utils.toDate
+import com.justxraf.networkapi.util.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
-import com.justxraf.questscore.quests.QuestsManager
+import com.justxraf.questscore.users.QuestUserLoadReason
 import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.events.EventsManager
-import com.justxraf.skyblockevents.util.formatDuration
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerQuitEvent
 
 class PlayerJoinListener : Listener {
     private val eventsManager = EventsManager.instance
-    private val questsUserManager = UsersManager.instance
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
@@ -39,7 +35,7 @@ class PlayerJoinListener : Listener {
                     player.sendColoured(it)
                 }
             }
-            val questUser = UsersManager.instance.getUser(player.uniqueId) ?: return
+            val questUser = UsersManager.instance.getUser(player.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) ?: return
             currentEvent.restartQuestsFor(questUser)
         }
     }

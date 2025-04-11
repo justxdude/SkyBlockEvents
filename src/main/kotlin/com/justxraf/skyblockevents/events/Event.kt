@@ -1,33 +1,40 @@
 package com.justxraf.skyblockevents.events
 
-import com.justxdude.islandcore.utils.toLocationString
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
-import com.justxraf.networkapi.util.Utils.sendColoured
-import com.justxraf.networkapi.util.Utils.toDate
+import com.justxraf.networkapi.util.asAudience
+import com.justxraf.networkapi.util.sendColoured
+import com.justxraf.networkapi.util.sendColouredActionBar
+import com.justxraf.questscore.api.UserQuestCancelEvent
 import com.justxraf.questscore.users.QuestUser
+import com.justxraf.questscore.users.QuestUserLoadReason
 import com.justxraf.questscore.users.UsersManager
-import com.justxraf.questscore.utils.sendMessages
+import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
+import com.justxraf.skyblockevents.events.event.EventEntitiesManager
+import com.justxraf.skyblockevents.events.player.EventPlayer
+import com.justxraf.skyblockevents.events.portals.EventPortal
+import com.justxraf.skyblockevents.events.portals.EventPortalType
+import com.justxraf.skyblockevents.events.portals.PortalRemovalReason
+import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsManager
+import com.justxraf.skyblockevents.translations.SkyBlockEventsResourcesManager
+import com.justxraf.skyblockevents.util.eventsTranslation
 import com.justxraf.skyblockevents.util.getEndOfDayMillis
 import com.justxraf.skyblockevents.util.isInCuboid
-import com.justxraf.skyblockevents.util.pasteSchematic
-import com.sk89q.worldedit.WorldEdit
-import com.sk89q.worldedit.bukkit.BukkitAdapter
-import com.sk89q.worldedit.math.BlockVector3
-import com.sk89q.worldedit.regions.CuboidRegion
+import com.justxraf.skyblockevents.util.localeEventsTranslation
+import com.justxraf.skyblockevents.util.removeViewer
+import com.justxraf.skyblockevents.util.translateComponentWithClickEvent
 import de.oliver.fancyholograms.api.FancyHologramsPlugin
+import de.oliver.fancyholograms.api.HologramManager
 import de.oliver.fancyholograms.api.data.TextHologramData
+import de.oliver.fancyholograms.api.data.property.Visibility
+import de.oliver.fancyholograms.api.hologram.Hologram
 import de.oliver.fancynpcs.api.FancyNpcsPlugin
 import de.oliver.fancynpcs.api.NpcData
+import kotlinx.coroutines.Runnable
 import org.bukkit.Bukkit
 import org.bukkit.Location
-import org.bukkit.Material
-import org.bukkit.block.data.Ageable
-import org.bukkit.entity.Display
-import org.bukkit.entity.EntityType
-import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
@@ -46,187 +53,125 @@ open class Event(
     open var description: MutableList<String>,
     open var spawnLocation: Location,
 
+    open var regenerativeMaterialsManager: RegenerativeMaterialsManager,
+
+    open var eventEntitiesManager: EventEntitiesManager,
+
     var requiredLevel: Int = 0,
 
+    var portals: MutableMap<EventPortalType, EventPortal>? = null,
+
     open var spawnRegion: Pair<Location, Location>? = null,
-
-    open var portalLocation: Location? = null,
-    open var portalCuboid: Pair<Location, Location>? = null,
-
-    open var eventPortalLocation: Location? = null,
-    open var eventPortalCuboid: Pair<Location, Location>? = null,
 
     open var questNPCLocation: Location? = null,
 
     open var quests: MutableList<Int>? = null,
     open val playersWhoJoined: MutableList<UUID> = mutableListOf(),
-
-    // For spawning entities in random places in the cuboid
-    open var spawnPointsCuboid: MutableMap<Int, Pair<Location, Location>>? = null,
-    open var entityTypeForSpawnPoint: MutableMap<Int, EntityType>? = null,
-
-    open var regenerativeBlocks: MutableMap<Location, Material>? = null,
-    open var regenerativePlants: MutableMap<Location, Material>? = null,
-
-    // Live
-    open var spawnPointsEntities: MutableMap<Int, MutableMap<UUID, EntityType>>? = mutableMapOf(),
-    open var brokenBlocks: MutableMap<Location, Pair<Long, Material>> = mutableMapOf(),
-    open var harvestedPlants: MutableMap<Location, Pair<Long, Material>> = mutableMapOf(),
-    open var activePlayers: MutableList<UUID> = mutableListOf(),
-
-    private var task: BukkitTask? = null,
-    private var activityCheckTask: BukkitTask? = null,
-    private var blocksCheck: BukkitTask? = null
 ) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
-
+    @Transient lateinit var activePlayers: MutableMap<UUID, EventPlayer>
+    @Transient var disabledNotifications: MutableList<UUID> = mutableListOf()
+    @Transient private var notificationsTask: BukkitTask? = null
+    private var activityCheckTask: BukkitTask? = null
 
     open fun start() {
+        activePlayers = mutableMapOf()
+        disabledNotifications = mutableListOf()
+
         playersWhoJoined.clear()
         clearPlayersQuests()
 
         startedAt = System.currentTimeMillis()
         endsAt = getEndOfDayMillis(System.currentTimeMillis())
 
-        placePortal()
-        placeEventPortal()
-
-        reloadNPC()
+        portals?.values?.forEach { portal ->
+            portal.setup()
+        }
+        spawnQuestNPC()
 
         runTasks()
-        placeRegenerativeBlocks()
 
-        initializeSpawnPointsEntities()
-
-        placeAllRegenerativePlants()
-
-        sendStartMessage()
+        eventEntitiesManager.setup(this)
+        regenerativeMaterialsManager.setup(this)
     }
     open fun end() {
         clearPlayersQuests()
-        if(portalCuboid != null && portalLocation != null) removePortal(portalLocation!!, portalCuboid!!)
-        if(eventPortalCuboid != null && eventPortalLocation != null) removePortal(eventPortalLocation!!, eventPortalCuboid!!)
+
+        portals?.values?.forEach { portal ->
+            portal.end(PortalRemovalReason.END)
+        }
 
         removeNPC()
-
-        removeEventPortalHologram()
-        removePortalHologram()
         removeQuestNPCHologram()
-        removeEntities()
 
-        task?.cancel()
         activityCheckTask?.cancel()
+        notificationsTask?.cancel()
 
+        eventEntitiesManager.stop()
+
+        regenerativeMaterialsManager.stop()
+
+        playersWhoJoined.clear()
     }
 
     open fun reload() {
-        runTasks()
-        Bukkit.getScheduler().runTaskLater(components.plugin, Runnable {
-            placeRegenerativeBlocks()
-            reloadNPC()
-        }, 30)
+        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
+            disabledNotifications = mutableListOf()
+            activePlayers = mutableMapOf()
 
-        initializeSpawnPointsEntities()
-        checkActivePlayers()
+            runTasks()
+            checkActivePlayers()
 
-        placePortal()
-        placeEventPortal()
+            portals?.values?.forEach { portal ->
+                portal.event = this
+                portal.end(PortalRemovalReason.RESTART)
 
-        removeQuestNPCHologram()
-        createQuestNPCsHologram()
-        removeEntities()
-
-        placeAllRegenerativePlants()
-    }
-    open fun runTasks() {
-        task = object : BukkitRunnable() {
-            override fun run() {
-                val playersInTheEvent = Bukkit.getOnlinePlayers().filter { it.world == spawnLocation.world }.size
-                if(playersInTheEvent == 0) {
-                    removeEntities()
-                    return
-                }
-                checkEntities()
+                portal.setup()
             }
-        }.runTaskTimer(components.plugin, 0, 20 * 5) // Check every 5 seconds.
 
+            removeQuestNPCHologram()
+
+            eventEntitiesManager.reload(this)
+            regenerativeMaterialsManager.reload(this)
+
+            spawnQuestNPC()
+        }, 30)
+    }
+    open fun startMessage(): List<String> = emptyList()
+    open fun joinMessage(): List<String> = emptyList()
+    open fun runTasks() {
         activityCheckTask = object : BukkitRunnable() {
             override fun run() {
                 checkActivePlayers()
             }
         }.runTaskTimer(components.plugin, 0, 20 * 10) // Check every 10 seconds.
-
-        blocksCheck = object : BukkitRunnable() {
+        notificationsTask = object : BukkitRunnable() {
             override fun run() {
-                checkBlocks()
-                checkPlants()
+                sendNotification()
             }
-        }.runTaskTimer(components.plugin, 0, 20) // Check every 1 second.
+        }.runTaskTimer(components.plugin, 0, 20 * 540) // every 5 minutes 540
     }
+    private fun sendNotification() {
+        Bukkit.getOnlinePlayers().filter {
+            val user = it.asUser()
+            user != null
+                    && it.world != spawnLocation.world
+                    && user.level >= requiredLevel
+                    && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
+                    && !disabledNotifications.contains(it.uniqueId)
+        }.forEach { player ->
+            if(disabledNotifications.contains(player.uniqueId)) return@forEach
 
-    // Checks harvested plants
-    private fun checkPlants() {
-        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
-
-        plantRegenerativePlants()
-    }
-    private fun placeAllRegenerativePlants() {
-        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
-
-        regenerativePlants!!.forEach { (location, material) ->
-            val block = location.world?.getBlockAt(location) ?: return@forEach
-            block.type = material
-
-            val ageable = block.state as? Ageable ?: return@forEach
-            ageable.age = 0
+            player.asAudience().sendMessage("event.is.on".translateComponentWithClickEvent(player,
+                "disable_event_notification", "event.is.on.click".eventsTranslation(player), name.lowercase().eventsTranslation(player)))
         }
     }
-    private fun plantRegenerativePlants() {
-        if(harvestedPlants.isEmpty()) return
-
-        harvestedPlants.filter {  System.currentTimeMillis() -  it.value.first < 30000 }.forEach { (location, pair) ->
-            val (long, material) = pair
-
-            val block = location.world?.getBlockAt(location) ?: return@forEach
-            block.type = material
-
-            val ageable = block.state as? Ageable ?: return@forEach
-            ageable.age = 0
-        }
-    }
-    fun harvestRegenerativePlant(location: Location) {
-        if(harvestedPlants.isEmpty()) return
-        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
-
-        val harvestablePlant = regenerativePlants!![location] ?: return
-
-        harvestedPlants[location] = Pair(System.currentTimeMillis(), harvestablePlant)
-    }
-    fun canHarvestRegenerativePlant(location: Location): Boolean {
-        val block = location.world?.getBlockAt(location) ?: return false
-
-        if(block.blockData !is Ageable) return false
-        val ageable = block.blockData as Ageable
-
-        return ageable.age == ageable.maximumAge
-    }
-    fun isRegenerativePlant(location: Location): Boolean {
-        if(regenerativePlants.isNullOrEmpty()) regenerativePlants = mutableMapOf()
-        return regenerativePlants!!.containsKey(location)
-    }
-    fun addRegenerativePlant(location: Location, material: Material) {
-        if(regenerativePlants == null) regenerativePlants = mutableMapOf()
-        if(regenerativePlants!!.contains(location)) return
-
-        regenerativePlants!![location] = material
-    }
-
     private fun clearPlayersQuests() { // Removes the same quests which were finished previously.
         val availableQuests = quests ?: return
 
         val usersManager = UsersManager.instance
-        val questUsers = Bukkit.getOnlinePlayers().mapNotNull { usersManager.getUser(it.uniqueId) }
+        val questUsers = Bukkit.getOnlinePlayers().mapNotNull { usersManager.getUser(it.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) }
 
         questUsers.forEach { questUser ->
             val keysToRemove =
@@ -241,26 +186,15 @@ open class Event(
 
         }
     }
-    fun removePortal(location: Location, cuboid: Pair<Location, Location>) {
-        val pos1 = cuboid.first
-        val pos2 = cuboid.second
-        val world = BukkitAdapter.adapt(location.world)
-        val region =
-            CuboidRegion(world, BlockVector3.at(pos1.x + 0.5, pos1.y, pos1.z + 0.5), BlockVector3.at(pos2.x + 0.5, pos2.y, pos2.z - 1.5))
-
-        WorldEdit.getInstance().newEditSessionBuilder().world(world).build().use {
-            val airBlock = BukkitAdapter.adapt(org.bukkit.Material.AIR.createBlockData())
-            it.setBlocks(region.faces, airBlock)
-        }
-    }
     open fun teleport(player: Player) {
         player.teleport(spawnLocation)
         if(!playersWhoJoined.contains(player.uniqueId)) {
-            player.sendColoured("&aDołączyłeś do wydarzenia $name pierwszy raz!")
+            player.sendColouredActionBar("joined.event".eventsTranslation(player, name))
             playersWhoJoined.add(player.uniqueId)
-            description.forEach { player.sendColoured(it) }
+            if(description.isNotEmpty())
+                description.forEach { player.sendColoured(it) }
         } else {
-            player.sendColoured("&aPrzeteleportowano do wydarzenia $name!")
+            player.sendColouredActionBar("teleported.event".eventsTranslation(player, name))
         }
     }
     open fun addQuest(id: Int) {
@@ -272,7 +206,7 @@ open class Event(
         if(quests == null) quests = mutableListOf()
         if(!quests!!.contains(id))return
 
-        Bukkit.getOnlinePlayers().map { UsersManager.instance.getUser(it.uniqueId) }.forEach { user ->
+        Bukkit.getOnlinePlayers().map { UsersManager.instance.getUser(it.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) }.forEach { user ->
             if(user != null) {
                 user.activeQuests.removeIf { it.uniqueId == id }
                 user.givenQuests.remove(id)
@@ -286,244 +220,84 @@ open class Event(
     // Activity
     private fun checkActivePlayers() {
         val world = spawnLocation.world ?: return
-        activePlayers = mutableListOf()
+        val playersToRemove = mutableListOf<UUID>()
 
-        activePlayers.clear()
-        activePlayers = world.entities.filterIsInstance<Player>().map { it.uniqueId }.toMutableList()
-
-        reloadPortalHologram()
-    }
-
-    // Entities
-    private fun initializeSpawnPointsEntities() {
-        spawnPointsEntities = mutableMapOf()
-        if(spawnPointsCuboid == null) spawnPointsCuboid = mutableMapOf()
-
-        spawnPointsCuboid!!.forEach {
-            spawnPointsEntities!![it.key] = mutableMapOf()
-        }
-    }
-    fun isEventEntity(uuid: UUID): Boolean {
-        try {
-            if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
-            return spawnPointsEntities!!.any { (_, value) -> value.keys.contains(uuid) }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return false
-        }
-    }
-    private fun removeEntities() {
-        try {
-            val world = spawnLocation.world ?: return
-
-            world.entities.forEach {
-                if (it is Player) return@forEach
-                it.remove()
+        activePlayers.forEach { (uuid, eventPlayer) ->
+            if(eventPlayer.shouldRemove(world)) {
+                playersToRemove.add(uuid)
+                eventPlayer.kick(world)
             }
-
-            if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
-            spawnPointsEntities?.clear()
-        }catch (e: Exception) {
-            e.printStackTrace()
         }
-    }
-    private fun checkEntities() {
-        try {
-            val world = spawnLocation.world ?: return
-
-            if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
-            val entities = spawnPointsEntities!!.flatMap { it.value.keys }.toMutableList()
-
-            val worldEntities = world.entities
-            val worldEntitiesUUIDs = worldEntities.map { it.uniqueId }
-            // Remove entities from the map if they no longer exist in the world
-            entities.forEach { uuid ->
-                if (!worldEntitiesUUIDs.contains(uuid)) {
-                    removeEntity(uuid)
-                }
-            }
-
-            worldEntities.filter { !entities.contains(it.uniqueId) && it !is Player }.forEach { it.remove() }
-            shouldSpawnEntity()
-        }catch (e: Exception) {
-            e.printStackTrace()
+        playersToRemove.forEach {
+            activePlayers.remove(it)
         }
-    }
 
-    fun removeEntity(uuid: UUID) {
-        try {
-            if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
-            spawnPointsEntities?.let { entitiesMap ->
-                entitiesMap.forEach { (_, entityMap) ->
-                    entityMap.remove(uuid)
-                }
-            }
-        }catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
+        val players: Map<UUID, EventPlayer> = Bukkit.getOnlinePlayers()
+            .filter { it.uniqueId !in activePlayers && it.world == world }
+            .associateBy({ it.uniqueId }, { EventPlayer(it, System.currentTimeMillis()) })
 
-    private fun shouldSpawnEntity() {
-        try {
-            if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
-
-            if (spawnPointsEntities!!.isEmpty())
-                spawnPointsCuboid!!.forEach {
-                    spawnPointsEntities!![it.key] = mutableMapOf()
-                }
-
-            spawnPointsEntities?.let { entitiesMap ->
-                entitiesMap.forEach { (mapID, entityMap) ->
-                    if (entityMap.size < 5) {
-                        spawnEntityInCuboid(mapID)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun spawnEntityInCuboid(mapID: Int) {
-        try {
-            if (entityTypeForSpawnPoint == null) entityTypeForSpawnPoint = mutableMapOf()
-
-            val entityType = entityTypeForSpawnPoint!![mapID] ?: return // EntityType
-            if (spawnPointsCuboid == null) spawnPointsCuboid = mutableMapOf()
-
-            val cuboid = spawnPointsCuboid!![mapID] ?: return // Pair <Location, Location>
-            val world = spawnLocation.world ?: return
-
-            val location = getRandomLocationWithinCuboid(cuboid)
-            val entity = world.spawnEntity(location, entityType) as Mob
-
-            if (spawnPointsEntities == null) spawnPointsEntities = mutableMapOf()
-            if (spawnPointsEntities!![mapID] == null) {
-                spawnPointsEntities!![mapID] = mutableMapOf()
-            }
-
-            spawnPointsEntities!![mapID]?.put(entity.uniqueId, entityType)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun getRandomLocationWithinCuboid(cuboid: Pair<Location, Location>): Location {
-        val random = Random()
-
-        val (loc1, loc2) = cuboid
-        val world = loc1.world
-
-        val minX = minOf(loc1.x, loc2.x)
-        val maxX = maxOf(loc1.x, loc2.x)
-        val minZ = minOf(loc1.z, loc2.z)
-        val maxZ = maxOf(loc1.z, loc2.z)
-
-        val randomX = if (minX == maxX) minX else random.nextDouble(minX, maxX)
-        val randomZ = if (minZ == maxZ) minZ else random.nextDouble(minZ, maxZ)
-        val randomY = loc1.y
-
-        return Location(world, randomX, randomY, randomZ)
-    }
-    private fun getEntityCuboid(location: Location): Int? {
-        if(spawnPointsCuboid == null) {
-            spawnPointsCuboid = mutableMapOf()
-            return null
-        }
-        return spawnPointsCuboid?.entries?.firstNotNullOfOrNull { (key, pair) ->
-            if (location.isInCuboid(pair.first, pair.second)) key else null
-        }
-    }
-
-    // Blocks
-
-    private fun placeRegenerativeBlocks() {
-        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
-        val world = spawnLocation.world ?: return
-
-        regenerativeBlocks?.forEach { (key, value) ->
-            world.getBlockAt(key).type = value
-        }
-    }
-    fun breakRegenerativeBlockAt(location: Location) {
-        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
-        val material = regenerativeBlocks!![location] ?: return
-
-        if(brokenBlocks == null) brokenBlocks = mutableMapOf()
-        brokenBlocks[location] = Pair(System.currentTimeMillis(), material)
-    }
-    fun isRegenerativeBlock(location: Location): Boolean {
-        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
-        return regenerativeBlocks!!.containsKey(location)
-    }
-    private fun checkBlocks() {
-        try {
-            val currentTime = System.currentTimeMillis()
-            val world = spawnLocation.world ?: return
-
-            brokenBlocks.filter { (_, value) -> (currentTime - value.first) > 6000 }
-                .forEach { (key, value) ->
-                    world.getBlockAt(key).type = value.second
-                    brokenBlocks.remove(key)
-                }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    fun addRegenerativeBlock(location: Location, material: Material) {
-        if(regenerativeBlocks == null) regenerativeBlocks = mutableMapOf()
-        if(regenerativeBlocks!!.contains(location)) return
-
-        regenerativeBlocks!![location] = material
+        activePlayers.putAll(players)
     }
 
     fun spawnQuestNPC() {
-        try {
-            if (questNPCLocation == null) return
-
-            val npcData = NpcData("${uniqueId}_event_npc", null, questNPCLocation)
-
-            npcData.isGlowing = true
-            npcData.isShowInTab = false
-
-            npcData.isCollidable = true
-            npcData.isTurnToPlayer = false
-
-            npcData.setInteractionCooldown(5F)
-
-            npcData.setDisplayName("<empty>")
-
-            val npc = FancyNpcsPlugin.get().npcAdapter.apply(npcData)
-
-            npc.create()
-            npc.spawnForAll()
-            npc.updateForAll()
-
-            FancyNpcsPlugin.get().npcManager.registerNpc(npc)
-            createQuestNPCsHologram()
-
-        } catch (e: Exception) {
-            e.printStackTrace()
+        if (questNPCLocation == null) {
+            return
         }
+        if (FancyNpcsPlugin.get().npcManager.getNpc("${uniqueId}_event_npc") != null) {
+            createQuestNPCHologram()
+            return
+        }
+        val npcData = NpcData("${uniqueId}_event_npc", null, questNPCLocation)
+        npcData.isGlowing = true
+        npcData.isShowInTab = false
+
+        npcData.isCollidable = false
+        npcData.isTurnToPlayer = true
+
+        npcData.interactionCooldown = 5F
+        npcData.displayName = "<empty>"
+
+        val npc = FancyNpcsPlugin.get().npcAdapter.apply(npcData)
+        val npcManager = FancyNpcsPlugin.get().npcManager
+
+        npcManager.registerNpc(npc)
+        npc.data.setSkin("https://imgur.com/DxhxnRi")
+
+        npc.create()
+        npc.spawnForAll()
+        npc.updateForAll()
+
+        createQuestNPCHologram()
     }
-    private fun createQuestNPCsHologram() {
+    private fun createQuestNPCHologram() {
         try {
+
             val npcManager = FancyNpcsPlugin.get().npcManager
-            val npc = npcManager.getNpc("${uniqueId}_event_npc") ?: return
-
-            val hologramLocation = npc.data.location.clone().add(.0, npc.eyeHeight + 0.5, .0)
-
-            val description = listOf("&cDiabeł", "&7Kliknij aby rozmawiać")
+            val npc = npcManager.getNpc("${uniqueId}_event_npc")
+            if(npc == null) {
+                return
+            }
             val hologramManager = FancyHologramsPlugin.get().hologramManager
 
-            val hologram = hologramManager.getHologram("${uniqueId}_event_npc_hologram").orElse(null)
-            if (hologram != null) return
+            val hologramLocation = npc.data.location.clone().add(.0, npc.eyeHeight + 0.5, .0)
+            SkyBlockEventsResourcesManager.instance.languages.forEach { locale ->
+                val lore = listOf(
+                    "devil".localeEventsTranslation(locale),
+                    "click.to.talk".localeEventsTranslation(locale)
+                )
+                val hologram = hologramManager.getHologram("${uniqueId}_event_npc_hologram_$locale").orElse(null)
+                if (hologram != null) return
 
-            val hologramData = TextHologramData("${uniqueId}_event_npc_hologram", hologramLocation)
-            hologramData.setText(description)
-            hologramData.setLinkedNpcName("${uniqueId}_event_npc_hologram")
+                val hologramData = TextHologramData("${uniqueId}_event_npc_hologram_$locale", hologramLocation)
+                hologramData.text = lore
 
-            hologramManager.addHologram(hologramManager.create(hologramData))
+                hologramData.background = Hologram.TRANSPARENT
+                hologramData.linkedNpcName = "${uniqueId}_event_npc"
+                hologramData.visibility = Visibility.MANUAL
+
+                hologramManager.addHologram(hologramManager.create(hologramData))
+            }
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -541,6 +315,9 @@ open class Event(
             npc.updateForAll()
             FancyNpcsPlugin.get().npcManager.removeNpc(npc)
             FancyNpcsPlugin.get().npcManager.reloadNpcs()
+
+            removeQuestNPCHologram()
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -552,134 +329,57 @@ open class Event(
             if (npc == null) {
                 spawnQuestNPC()
                 return
+            } else {
+                removeNPC()
+                spawnQuestNPC()
             }
 
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
-
-
-    // Portals
-    fun placePortal() {
-        try {
-            portalCuboid = pasteSchematic(portalLocation!!, "NetherPortal")
-            placePortalHologram()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    fun placeEventPortal() {
-        try {
-            eventPortalCuboid = pasteSchematic(eventPortalLocation!!, "EventNetherPortal")
-            placeEventPortalHologram()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     // Holograms
 
     private fun removeQuestNPCHologram() {
         try {
             val hologramManager = FancyHologramsPlugin.get().hologramManager
+            SkyBlockEventsResourcesManager.instance.languages.forEach { locale ->
 
-            val hologram = hologramManager.getHologram("${uniqueId}_event_npc_hologram").orElse(null)
-            if (hologram != null) hologramManager.removeHologram(hologram)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    // Holograms
-    fun removePortalHologram() {
-        try {
-            val hologramManager = FancyHologramsPlugin.get().hologramManager
-
-            val hologram = hologramManager.getHologram("${uniqueId}_portal_hologram").orElse(null)
-            if (hologram != null) hologramManager.removeHologram(hologram)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    private fun reloadPortalHologram() {
-        try {
-            val manager = FancyHologramsPlugin.get().hologramManager
-            val hologram = manager.getHologram("${uniqueId}_portal_hologram").getOrNull()
-            if (hologram == null) {
-                placePortalHologram()
-                return
+                val hologram = hologramManager.getHologram("${uniqueId}_event_npc_hologram_$locale").orElse(null)
+                if (hologram != null) hologramManager.removeHologram(hologram)
             }
-
-            val hologramData = hologram.data as? TextHologramData ?: return
-            val lines = listOf(
-                "&a&lWydarzenie $name",
-                "&aLiczba aktywnych graczy: ${activePlayers.size}",
-                "&a${if (playersWhoJoined.isEmpty()) "Nikt nie dołączył do tego wydarzenia" 
-                    else if(playersWhoJoined.size < 2) "Dołączył łącznie tylko jeden gracz" 
-                        else "Dołączyło łącznie &7${playersWhoJoined.size} graczy&a."}",
-
-                "&7Kończy się o ${endsAt.toDate()}",
-                "",
-                "&7Wejdź w portal aby dołączyć!"
-            )
-            hologramData.setText(lines)
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
-    private fun placePortalHologram() {
-        try {
-            removePortalHologram()
+    fun showNPCHologram(player: Player, hologramManager: HologramManager, skyBlockEventsResourcesManager: SkyBlockEventsResourcesManager) {
+        val locale = if(!skyBlockEventsResourcesManager.languages.contains(player.locale)) "en_us" else player.locale
+        val hologramName = "${uniqueId}_event_npc_hologram_$locale"
 
-            val centre = portalLocation ?: return
-            val hologramLocation = Location(centre.world, centre.x + 1.3, centre.y + 4, centre.z - 0.2)
-            val lines = listOf(
-                "&a&lWydarzenie $name",
-                "&aLiczba aktywnych graczy: ${activePlayers.size}",
-                "&a${if (playersWhoJoined.size < 2) "Dołączył łącznie tylko jeden gracz" else "Dołączyło łącznie &7${playersWhoJoined.size} graczy&a."}",
-                "&7Kończy się o ${endsAt.toDate()}",
-                "",
-                "&7Wejdź w portal aby dołączyć!"
-            )
-            val hologramManager = FancyHologramsPlugin.get().hologramManager
-            val hologramData = TextHologramData("${uniqueId}_portal_hologram", hologramLocation)
-            hologramData.setText(lines)
-            hologramData.setBillboard(Display.Billboard.CENTER)
+        val hologram = hologramManager.getHologram(hologramName).getOrNull() ?: return
 
-            hologramManager.addHologram(hologramManager.create(hologramData))
-        } catch (e: Exception) {
-            e.printStackTrace()
+        if(!hologram.isWithinVisibilityDistance(player)) return
+
+        if(!Visibility.ManualVisibility.canSee(player, hologram)) {
+
+            Visibility.ManualVisibility.addDistantViewer(hologram, player.uniqueId)
+            hologram.forceShowHologram(player)
         }
     }
-    fun removeEventPortalHologram() {
-        try {
-            val hologramManager = FancyHologramsPlugin.get().hologramManager
+    fun removeDistantViewerFromNPCHologram(player: Player, skyBlockEventsResourcesManager: SkyBlockEventsResourcesManager, hologramManager: HologramManager) {
+        val hologramNames = mutableListOf<String>()
+        val languages = skyBlockEventsResourcesManager.languages
 
-            val hologram = hologramManager.getHologram("${uniqueId}_event_portal_hologram").orElse(null)
-            if(hologram != null) hologramManager.removeHologram(hologram)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val playerLocale = if(languages.contains(player.locale)) player.locale else "en_us"
+
+        languages.forEach { locale ->
+            if(locale == playerLocale) return@forEach
+
+            hologramNames.add("${uniqueId}_event_npc_hologram_$locale")
         }
-    }
-    private fun placeEventPortalHologram() {
-        try {
-            removeEventPortalHologram()
 
-            val centre = eventPortalLocation ?: return
-            val hologramLocation = Location(centre.world, centre.x, centre.y + 4, centre.z + .5)
-            val lines = listOf("&aTeleportuj do", "&7Spawn")
-
-            val hologramManager = FancyHologramsPlugin.get().hologramManager
-            val hologramData = TextHologramData("${uniqueId}_event_portal_hologram", hologramLocation)
-
-            hologramData.setText(lines)
-            hologramData.setBillboard(Display.Billboard.CENTER)
-
-            hologramManager.addHologram(hologramManager.create(hologramData))
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        val holograms = hologramNames.map { hologramManager.getHologram(it).getOrNull() }
+        holograms.removeViewer(player)
     }
 
     fun restartQuestsFor(questUser: QuestUser) {
@@ -691,14 +391,22 @@ open class Event(
         }
         questUser.activeQuests.filter { quests!!.contains(it.uniqueId) }.forEach {
             questUser.activeQuests.remove(it)
+
+            val user = questUser.uniqueId.asUser() ?: return@forEach
+            Bukkit.getPluginManager().callEvent(UserQuestCancelEvent(user, questUser, it))
         }
     }
 
     // Regions
     fun isInSpawnRegion(location: Location): Boolean {
         if(spawnRegion == null) return false
-        return location.isInCuboid(spawnRegion!!.first, spawnRegion!!.second)
+        return location.isInCuboid(spawnRegion!!)
     }
+    fun getPortalAt(location: Location): EventPortal? =
+        portals?.values?.firstOrNull {
+            it.isIn(location)
+        }
+    fun normalPortalLocation(): Location? = portals?.values?.firstOrNull { it.portalType == EventPortalType.NORMAL }?.centre
 
     fun toData() = EventData(
         name,
@@ -709,41 +417,13 @@ open class Event(
         description,
         spawnLocation,
         requiredLevel,
+        portals,
         spawnRegion,
-        portalLocation,
-        portalCuboid,
-        eventPortalLocation,
-        eventPortalCuboid,
         questNPCLocation,
         quests,
         playersWhoJoined,
-        spawnPointsCuboid,
-        entityTypeForSpawnPoint,
-        regenerativeBlocks,
-        regenerativePlants,
+        eventEntitiesManager.cuboids,
+        regenerativeMaterialsManager.regenerativeMaterials
     )
-    fun startMessage(): List<String> = listOf(
-            "&9&m-".repeat(30),
-            "&a&lWydarzenie $name &arozpoczęło się!",
-            "&7",
-            "&7Na spawnie (${portalLocation?.toLocationString()} X,Y,Z) pojawił się portal",
-            "&7Przez który możesz dołączyć do wydarzenia!",
-            "&9&m-".repeat(30),
-        )
 
-    fun joinMessage(): List<String> = listOf(
-        "&9&m-".repeat(30),
-        "&a&lWydarzenie $name &arozpoczęło się!",
-        "&7",
-        "&7Wydarzenie dalej trwa! Dołącz do niego zanim minie czas!",
-        "&9&m-".repeat(30)
-    )
-    fun sendStartMessage() {
-        Bukkit.getOnlinePlayers().sendMessages(
-            *startMessage().toTypedArray()
-        ) {
-            val user = it.asUser()
-            user != null && user.level >= requiredLevel && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
-        }
-    }
 }

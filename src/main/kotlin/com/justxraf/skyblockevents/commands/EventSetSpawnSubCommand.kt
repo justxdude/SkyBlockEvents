@@ -2,7 +2,7 @@ package com.justxraf.skyblockevents.commands
 
 import com.justxdude.islandcore.utils.toLocationString
 import com.justxraf.networkapi.util.LocationUtil.isItSafe
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.util.SelectionAnswer
@@ -31,16 +31,17 @@ object EventSetSpawnSubCommand {
 
         return selectionAnswer == SelectionAnswer.CORRECT
     }
+
     fun process(player: Player,args: Array<String>, sessionEvent: EventData) {
         if(!shouldProcess(player, sessionEvent)) return
         val currentEvent = eventsManager.currentEvent
 
-        if(args[1].lowercase() == "region") {
-            if(!shouldProcessSetRegion(player)) return
+        if(args.size > 1 && args[1].lowercase() == "region") {
+            if (!shouldProcessSetRegion(player)) return
             val (loc1, loc2) = player.getWorldEditSelection() ?: return
-            sessionEvent.spawnRegion = Pair(loc1, loc2)
-            if(currentEvent.uniqueId == sessionEvent.uniqueId) currentEvent.spawnRegion = Pair(loc1, loc2)
 
+            sessionEvent.spawnRegion = Pair(loc1, loc2)
+            if (currentEvent.uniqueId == sessionEvent.uniqueId) currentEvent.spawnRegion = Pair(loc1, loc2)
         }
 
         val location = player.location

@@ -2,9 +2,12 @@ package com.justxraf.skyblockevents.commands
 
 import com.justxdude.islandcore.utils.toLocationString
 import com.justxraf.networkapi.util.LocationUtil.isItSafe
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.Event
+import com.justxraf.skyblockevents.events.portals.EventPortalType
 import com.justxraf.skyblockevents.events.data.EventData
+import com.justxraf.skyblockevents.events.portals.EventPortal
+import com.justxraf.skyblockevents.util.getLookingDirection
 import org.bukkit.Location
 import org.bukkit.entity.Player
 
@@ -58,42 +61,17 @@ object EventSetPortalSubCommand {
 
         player.sendColoured("&7Ustawiono portal dla wydarzenia #${sessionEvent.uniqueId} w lokacji (XYZ) ${location.toLocationString()}")
 
-        when(type) {
-            EventPortalType.EVENT -> {
-                sessionEvent.eventPortalLocation = location
-                if(currentEvent == null) return
+        val portal = EventPortal(type, player.getLookingDirection(), location, sessionEvent.type)
 
-                val portalCuboid = currentEvent.eventPortalCuboid!!
-                val portalLocation = currentEvent.eventPortalLocation!!
+        if (sessionEvent.portals.isNullOrEmpty()) sessionEvent.portals = mutableMapOf()
+        sessionEvent.portals?.set(type, portal)
 
-                currentEvent.removePortal(portalLocation, portalCuboid)
-                currentEvent.removeEventPortalHologram()
+        if (currentEvent == null) return
+        if (currentEvent.portals.isNullOrEmpty()) currentEvent.portals = mutableMapOf()
 
-                currentEvent.eventPortalLocation = location
-                currentEvent.placeEventPortal()
-
-                currentEvent.eventPortalLocation = location
-            }
-            EventPortalType.NORMAL -> {
-                sessionEvent.portalLocation = location
-                if(currentEvent == null) return
-
-                val portalCuboid = currentEvent.portalCuboid!!
-                val portalLocation = currentEvent.portalLocation!!
-
-                currentEvent.removePortal(portalLocation, portalCuboid)
-                currentEvent.removePortalHologram()
-
-                currentEvent.portalLocation = location
-                currentEvent.placePortal()
-
-                currentEvent.portalLocation = location
-            }
-        }
+        currentEvent.portals?.set(type, portal)
+        portal.setup()
     }
     private fun getLocationFrom(player: Player, args: Array<String>): Location = if(args.size == 5)
         Location(player.location.world, args[2].toDouble(), args[3].toDouble(), args[4].toDouble()) else player.location
-}
-enum class EventPortalType {
-    EVENT, NORMAL
 }

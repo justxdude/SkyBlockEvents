@@ -1,21 +1,18 @@
 package com.justxraf.skyblockevents.events
 
-import com.github.supergluelib.foundation.async
-import com.ibm.icu.util.TimeUnit
-import com.justxdude.islandcore.utils.toLocationString
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
-import com.justxraf.networkapi.util.Utils.toDate
-import com.justxraf.questscore.utils.sendMessage
-import com.justxraf.questscore.utils.sendMessages
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
+import com.justxraf.skyblockevents.events.event.EventEntitiesManager
+import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsManager
+import com.justxraf.skyblockevents.util.eventsTranslation
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.UpdateOneModel
 import com.mongodb.client.model.UpdateOptions
-import com.sun.org.apache.xml.internal.serializer.utils.Utils.messages
+import kotlinx.coroutines.Runnable
 import org.bson.Document
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -27,7 +24,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture.supplyAsync
 
 class EventsManager(private val componentsManager: ComponentsManager) {
-    var currentEvent: Event
+    lateinit var currentEvent: Event
     var events: MutableMap<Int, EventData> = mutableMapOf()
     val editSession = mutableMapOf<UUID, EventData>()
 
@@ -38,23 +35,23 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     private val eventsCollection = database.getCollection("events")
     private val gson = SkyblockAPI.instance.database.gson
 
-    init {
+    private fun setup() {
         currentEvent = loadCurrentEvent()?.fromData() ?: generateNewEvent()
-        if (System.currentTimeMillis() - currentEvent.startedAt > 2000) {
-            when (currentEvent.eventType) {
-                EventType.NETHER -> (currentEvent as NetherEvent).reload()
-                else -> currentEvent.reload()
-            }
+
+        if(shouldFinish()) {
+            currentEvent = generateNewEvent()
+            saveCurrentEvent()
+        } else {
+            currentEvent.reload()
         }
+
         events = mutableMapOf()
         loadEvents()
-    }
-
-    private fun setup() {
 
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             saveCurrentEvent()
         }, 0L, 20 * 5)
+
 
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             if (shouldFinish()) {
@@ -67,67 +64,77 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             saveEvents()
         }, 0L, 20 * 20)
-
-        Bukkit.getScheduler().runTaskTimerAsynchronously(componentsManager.plugin, Runnable {
-            // Don't send if:
-            // player is in the current event world, player doesn't have high enough level, player set notifications to false.
-            val message = mutableListOf(
-                "&9&m-".repeat(30),
-                "&a&lWydarzenie ${currentEvent.name} &atrwa!",
-                "&7",
-                "&7Dołącz do wydarzenia poprzez portal na spawnie (${currentEvent.portalLocation?.toLocationString()} (X,Y,Z)",
-                "&7I zdobądź surowce które nie są normalnie dostępne!",
-                "&7Te wydarzenie kończy się o ${currentEvent.endsAt.toDate()}.",
-                "&9&m-".repeat(30)
-            )
-            Bukkit.getOnlinePlayers().sendMessages(*message.toTypedArray()) {
-                val user = it.asUser()
-                user != null
-                        && it.world != currentEvent.spawnLocation.world
-                        && user.level >= currentEvent.requiredLevel
-                        && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
-            }
-
-        }, 0L, 20 * 240)
     }
+    private val timeMessages = mapOf(
+        1L to "second",
+        2L to "seconds",
+        3L to "seconds",
+        4L to "seconds",
+        5L to "seconds2",
+        6L to "seconds2",
+        7L to "seconds2",
+        8L to "seconds2",
+        9L to "seconds2",
+        10L to "seconds2",
+        60L to "minute",
+        900L to "minutes",
+        1800L to "minutes",
+        3600L to "hour"
+    )
 
     private fun eventTimeCheck() {
-        async {
-            val timeLeft = currentEvent.endsAt - System.currentTimeMillis()
-            val timeMessages = mapOf(
-                1L to "sekundę",
-                2L to "2 sekundy",
-                3L to "3 sekundy",
-                4L to "4 sekundy",
-                5L to "5 sekund",
-                6L to "6 sekund",
-                7L to "7 sekund",
-                8L to "8 sekund",
-                9L to "9 sekund",
-                10L to "10 sekund",
-                60L to "minutę",
-                900L to "15 minut",
-                1800L to "30 minut",
-                3600L to "godzinę"
-            )
+        Bukkit.getScheduler().runTaskAsynchronously(componentsManager.plugin, Runnable {
+            currentEvent?.let { currentEvent ->
+                val timeLeft = currentEvent.endsAt - System.currentTimeMillis()
 
-            val message = "Wydarzenie ${currentEvent.name} kończy się za %time!"
+                val message = "event.ends.in"
+                Bukkit.getOnlinePlayers().filter {
+                    val user = it.asUser()!!
+                    user.level >= currentEvent.requiredLevel
+                            && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
+                }.forEach { player ->
+                    val translatedMessage = message.eventsTranslation(
+                        player,
+                        "nether".eventsTranslation(player)
+                    )
 
-            val messageToSend = when (val timeLeftSeconds = timeLeft / 1000) {
-                in 1..10 -> "&c$message".replace("%time", timeMessages[timeLeftSeconds] ?: "")
-                60L -> "&c$message".replace("%time", timeMessages[60L] ?: "")
-                900L -> "&c$message".replace("%time", timeMessages[900L] ?: "")
-                1800L -> "&7$message".replace("%time", timeMessages[1800L] ?: "")
-                3600L -> "&7$message".replace("%time", timeMessages[3600L] ?: "")
-                else -> ""
-            }
+                    val messageToSend = when (val timeLeftSeconds = timeLeft / 1000) {
+                        in 1..10 -> "&c$translatedMessage".replace(
+                            "#time",
+                            timeMessages[timeLeftSeconds]?.eventsTranslation(
+                                player,
+                                timeLeftSeconds.toString()
+                            ) ?: ""
+                        )
 
-            if (messageToSend.isNotEmpty()) {
-                Bukkit.getOnlinePlayers().forEach {
-                    it.sendColoured(messageToSend)
+                        60L -> "&c$translatedMessage".replace(
+                            "#time",
+                            timeMessages[60L]?.eventsTranslation(player, "60") ?: ""
+                        )
+
+                        900L -> "&c$translatedMessage".replace(
+                            "#time",
+                            timeMessages[900L]?.eventsTranslation(player, "15") ?: ""
+                        )
+
+                        1800L -> "&7$translatedMessage".replace(
+                            "#time",
+                            timeMessages[1800L]?.eventsTranslation(player, "30") ?: ""
+                        )
+
+                        3600L -> "&7$translatedMessage".replace(
+                            "#time",
+                            timeMessages[3600L]?.eventsTranslation(player) ?: ""
+                        )
+
+                        else -> ""
+                    }
+                    if (messageToSend.isNotEmpty())
+                        player.sendColoured(messageToSend)
+
                 }
             }
-        }
+        })
     }
 
     private fun loadEvents() {
@@ -185,8 +192,11 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     }
 
     private fun generateNewEvent(): Event {
-        if (currentEvent != null) currentEvent.end()
+        try {
+            currentEvent.end()
+        } catch (e: Exception) {
 
+        }
         if (events.isEmpty()) return Event(
             "",
             0,
@@ -194,7 +204,9 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             0,
             0,
             mutableListOf(""),
-            Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0)
+            Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0),
+            RegenerativeMaterialsManager(),
+            EventEntitiesManager()
         ) // As a debug if there are no events in the database
 
         val event = events.values.random().fromData()
@@ -205,9 +217,9 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         return event
     }
 
-    private fun saveCurrentEvent() {
+    fun saveCurrentEvent() {
         supplyAsync {
-            val dataBson = Document.parse(gson.toJson(currentEvent.toData()))
+            val dataBson = Document.parse(gson.toJson(currentEvent?.toData()))
             val update = Document("\$set", dataBson)
 
             collection.updateOne(Filters.eq("_id", "currentEvent"), update, UpdateOptions().upsert(true))
@@ -231,7 +243,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     private fun shouldFinish(): Boolean {
         val zone = ZoneId.of("Europe/Berlin")
 
-        val zdtLastUpdate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentEvent.startedAt), zone)
+        val zdtLastUpdate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentEvent?.startedAt ?: 0), zone)
         val zdtNow = ZonedDateTime.now(zone)
 
         return zdtLastUpdate.get(ChronoField.DAY_OF_YEAR) != zdtNow.get(ChronoField.DAY_OF_YEAR) ||

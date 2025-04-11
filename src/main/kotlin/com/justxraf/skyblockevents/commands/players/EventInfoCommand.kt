@@ -3,13 +3,14 @@ package com.justxraf.skyblockevents.commands.players
 import com.justxdude.islandcore.utils.toLocationString
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.networkapi.commands.Command
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.networkapi.util.Utils.toDate
 import com.justxraf.skyblockevents.events.EventsManager
+import com.justxraf.skyblockevents.util.eventsTranslation
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 
-class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd")) {
+class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "event", "events")) {
     private val eventsManager = EventsManager.instance
 
     override fun canExecute(player: Player, args: Array<String>): Boolean = true
@@ -18,47 +19,36 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd")) {
         val currentEvent = eventsManager.currentEvent
         val joined = currentEvent.playersWhoJoined.size
         val activePlayers = currentEvent.activePlayers.size
-        val lowLevelMessage = listOf(
-            "&c&m-".repeat(30),
-            "&aInformacje na temat obecnego wydarzenia:",
-            "&7",
-            *currentEvent.description.toTypedArray(),
-            "&7",
-            "&8- &7${if(joined == 0) "Nikt jeszcze nie dołączył" else if(joined == 1) "Dołączył tylko jeden gracz" else "Łącznie dołączyło $joined graczy"}",
-            "&8- &7${if(activePlayers == 0) "Nie ma żadnych aktywnych graczy w tym wydarzeniu" 
-                else if(activePlayers == 1) "Tylko jeden gracz uczestniczy w wydarzeniu" 
-                    else "Łączna ilość aktywnych graczy w wydarzeniu: &e$activePlayers"}",
-            "&8- &7Kończy się o ${currentEvent.endsAt.toDate()}",
-            "&c",
-            "&cMusisz osiągnąć 10 poziom, aby dołączyć do tego wydarzenia.",
-            "&c&m-".repeat(30),
-        )
+        val message = mutableListOf<String>()
+
         val user = player.asUser() ?: return
-        if(user.level < currentEvent.requiredLevel) {
-            lowLevelMessage.forEach {
-                player.sendColoured(it)
-            }
-            return
-        }
 
+        message += listOf(
+            "${if(user.level < currentEvent.requiredLevel) "&c" else "&9" }&m-".repeat(30),
+            "events.information.title".eventsTranslation(player),
+            "&7"
+        )
+        if(currentEvent.description.isNotEmpty())
+            message += listOf(
+                *currentEvent.description.map { it.eventsTranslation(player) }.toTypedArray(),
+                "&7"
+            )
 
-        val allowedMessage = listOf(
-            "&9&m-".repeat(30),
-            "&aInformacje na temat obecnego wydarzenia:",
-            "&7",
-            *currentEvent.description.toTypedArray(),
-            "&7",
-            "&8- &7${if(joined == 0) "Nikt jeszcze nie dołączył" else if(joined == 1) "Dołączył tylko jeden gracz" else "Łącznie dołączyło $joined graczy"}",
-            "&8- &7${if(activePlayers == 0) "Nie ma żadnych aktywnych graczy w tym wydarzeniu"
-            else if(activePlayers == 1) "Tylko jeden gracz uczestniczy w wydarzeniu"
-            else "Łączna ilość aktywnych graczy w wydarzeniu: &e$activePlayers"}",
-            "&8- &7Kończy się o ${currentEvent.endsAt.toDate()}",
+        message += listOf(
+            "&8- &7${if(joined == 0) "nobody.joined".eventsTranslation(player) else if(joined == 1) "joined.one.player".eventsTranslation(player) else "joined.in.total".eventsTranslation(player, joined.toString())}",
+            "&8- &7${if(activePlayers == 0) "event.no.active.players".eventsTranslation(player)
+                else if(activePlayers == 1) "active.one.player".eventsTranslation(player)
+                    else "active.in.total".eventsTranslation(player, activePlayers.toString())}",
+
+            "ends.in".eventsTranslation(player, currentEvent.endsAt.toDate()),
             "&c",
-            "&cDołącz do tego wydarzenia poprzez portal na spawnie w koordynatach: ${currentEvent.portalLocation?.toLocationString()} (X, Y, Z).",
-            "&9&m-".repeat(30),
+            if(user.level < currentEvent.requiredLevel) "have.to.achieve.level.to.unlock" else "join.at"
+                .eventsTranslation(player, currentEvent.normalPortalLocation()?.toLocationString() ?: ""),
+            "&c",
+            "${if(user.level < currentEvent.requiredLevel) "&c" else "&9" }&m-".repeat(30),
         )
 
-        allowedMessage.forEach {
+        message.forEach {
             player.sendColoured(it)
         }
     }

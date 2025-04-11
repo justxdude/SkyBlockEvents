@@ -1,8 +1,16 @@
 package com.justxraf.skyblockevents.util
 
-import com.justxraf.networkapi.util.Utils.sendColoured
+import com.justxdude.skyblockapi.utils.Util.translate
+import com.justxraf.networkapi.util.sendColoured
+import com.justxraf.networkapi.util.toColorComponent
+import com.justxraf.skyblockevents.translations.SkyBlockEventsResourcesManager
 import com.sk89q.worldedit.bukkit.WorldEditPlugin
 import com.sk89q.worldedit.regions.CuboidRegion
+import de.oliver.fancyholograms.api.data.property.Visibility
+import de.oliver.fancyholograms.api.hologram.Hologram
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
@@ -11,7 +19,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 private val worldEdit = Bukkit.getPluginManager().getPlugin("WorldEdit") as WorldEditPlugin
@@ -28,9 +35,6 @@ fun Player.pushIfClose(targetLocation: Location, threshold: Double, pushStrength
         this.velocity = velocity
     }
 }
-
-
-
 
 fun Long.toTimeAgo(): String {
     val now = Instant.now()
@@ -61,86 +65,6 @@ fun getEndOfDayMillis(timestamp: Long): Long {
     return endOfDay.toInstant().toEpochMilli()
 }
 
-fun Long.formatDuration(): String {
-    val currentTime = System.currentTimeMillis()
-    val durationMillis = currentTime - this
-
-    val years = TimeUnit.MILLISECONDS.toDays(durationMillis) / 365
-    val months = TimeUnit.MILLISECONDS.toDays(durationMillis) / 30 % 12
-    val days = TimeUnit.MILLISECONDS.toDays(durationMillis) % 7
-    val hours = TimeUnit.MILLISECONDS.toHours(durationMillis) % 24
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis) % 60
-
-    val parts = mutableListOf<String>()
-
-
-    if (years > 0 && months.toInt() == 0 && days.toInt() == 0) {
-        parts.add(
-            "" +
-                    "${years} year"
-        )
-    } else if (years > 0 && months > 0 && days.toInt() == 0) {
-        parts.add(
-            "" +
-                    "$years ${if (years > 1) " years, " else " year, "} " +
-                    "$months ${if (months > 1) " months" else " month"}"
-        )
-    } else if (years > 0 && months > 0 && days > 0) {
-        parts.add(
-            "" +
-                    "$years ${if (years > 1) " years, " else " year, "} " +
-                    "$months ${if (months > 1) " months, " else " month, "}" +
-                    "$days ${if (days > 1) " days" else " day"}"
-        )
-    } else if (months > 0 && days.toInt() == 0) {
-        parts.add(
-            "" +
-                    "$months month"
-        )
-    } else if (months > 0 && days > 0) {
-        parts.add(
-            "" +
-                    "$months ${if (months > 1) " months, " else " month, "} " +
-                    "$days ${if (days > 1) " days" else " day"}"
-        )
-    } else if (days.toInt() == 1 && hours.toInt() == 0) {
-        parts.add(
-            "" +
-                    "$days day"
-        )
-    } else if (days > 0 && hours > 0) {
-        parts.add(
-            "" +
-                    "$days ${if (days > 1) " days, " else " day, "} " +
-                    "$hours ${if (hours > 1) " hours" else " hour"}"
-        )
-    } else if (hours.toInt() == 1) {
-        parts.add(
-            "" +
-                    "$hours hour"
-        )
-    } else if (hours > 0 && minutes > 0) {
-        parts.add(
-            "" +
-                    "$hours ${if (hours > 1) " hours, " else " hour, "}" +
-                    "$minutes ${if (minutes > 1) " minutes" else "minute"}"
-        )
-    } else if (minutes.toInt() == 1 && seconds.toInt() == 0) {
-        parts.add(
-            "" +
-                    "$minutes minute"
-        )
-    } else if (minutes > 0 && seconds > 0) {
-        parts.add(
-            "" +
-                    "$minutes ${if (minutes > 1) " minutes, " else " minut, "} " +
-                    "$seconds ${if (seconds > 1) " seconds" else "second"}"
-        )
-    }
-    return parts.joinToString(" ")
-} 
-
 fun MutableMap<UUID, Long>.shouldSendMessage(uniqueId: UUID): Boolean {
     if(this[uniqueId] == null) {
         this[uniqueId] = System.currentTimeMillis()
@@ -153,8 +77,11 @@ fun MutableMap<UUID, Long>.shouldSendMessage(uniqueId: UUID): Boolean {
     return false
 }
 
-fun Location.isInCuboid(pos1: Location, pos2: Location): Boolean {
+fun Location.isInCuboid(pair: Pair<Location, Location>): Boolean {
     val tolerance = 0.5
+
+    val (pos1, pos2) = pair
+
     val (x1, y1, z1) = arrayOf(pos1.x, pos1.y, pos1.z - 1.0)
     val (x2, y2, z2) = arrayOf(pos2.x, pos2.y, pos2.z - 1.0)
 
@@ -162,6 +89,7 @@ fun Location.isInCuboid(pos1: Location, pos2: Location): Boolean {
             y in (min(y1, y2 - tolerance))..(max(y1, y2 + tolerance)) &&
             z in (min(z1, z2 - tolerance))..(max(z1, z2 + tolerance))
 }
+
 fun Player.hasWorldEditSelection(sendMessage: Boolean = true): MutableMap<SelectionAnswer, Pair<Location, Location>?> {
     try {
         val session = worldEdit.getSession(player)
@@ -209,6 +137,44 @@ fun Player.getWorldEditSelection(): Pair<Location, Location>? {
     return Pair(pos1Location, pos2Location)
 }
 
+fun Player.getLookingDirection(): String {
+    val yaw: Float = location.yaw
+    return if (yaw > 135 || yaw < -135) {
+        "North"
+    } else if (yaw < -45) {
+        "East"
+    } else if (yaw > 45) {
+        "West"
+    } else {
+        "South"
+    }
+}
+
 enum class SelectionAnswer {
     NULL_POS1, NULL_POS2, NULL, CORRECT
 }
+val skyBlockEventsResourcesManager = SkyBlockEventsResourcesManager.instance
+
+fun String.eventsTranslation(player: Player, vararg arguments: String) =
+    skyBlockEventsResourcesManager.getString(this, player.locale).format(*arguments)
+fun String.localeEventsTranslation(locale: String, vararg arguments: String) =
+    skyBlockEventsResourcesManager.getString(this, locale).format(*arguments)
+
+fun List<Hologram?>.removeViewer(player: Player) {
+    forEach { hologram ->
+        if(hologram == null) return@forEach
+
+        if(!hologram.isViewer(player.uniqueId)) return@forEach
+        Visibility.ManualVisibility.removeDistantViewer(hologram, player.uniqueId)
+
+        hologram.forceHideHologram(player)
+        hologram.hideHologram(player)
+    }
+}
+fun String.translateComponentWithClickEvent(player: Player, command: String, hoverText: String, vararg args: String): Component =
+    skyBlockEventsResourcesManager.getString(this, player.locale).format(*args).toColorComponent()
+        .hoverEvent(HoverEvent.showText(hoverText.translate(player).toColorComponent()))
+        .clickEvent(ClickEvent.runCommand("/$command"))
+
+
+fun Hologram.shouldRemove(locale: String) = this.name.contains(locale)

@@ -1,12 +1,14 @@
 package com.justxraf.skyblockevents.listeners.entities
 
 import com.justxdude.skyblockapi.SkyblockAPI
+import com.justxdude.skyblockapi.managers.LevelsManager
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.skyblockevents.events.EventsManager
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityTargetEvent
+import org.bukkit.event.entity.ProjectileLaunchEvent
 
 class EntityTargetPlayerListener : Listener {
     private val eventsManager = EventsManager.instance
@@ -21,7 +23,7 @@ class EntityTargetPlayerListener : Listener {
 
         val user = target.asUser() ?: return
         // check level for entity
-        val levelsManager = SkyblockAPI.instance.levelsManager
+        val levelsManager = LevelsManager.instance
         if(!levelsManager.canKillAMob(user.level, event.entityType)) {
             event.isCancelled = false
             return

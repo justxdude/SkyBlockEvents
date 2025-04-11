@@ -6,3 +6,4 @@ load: POSTWORLD
 depend:
   - FancyNpcs
   - FancyHolograms
+  - FastAsyncWorldEdit
