@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.networkapi.commands.Command
@@ -11,7 +11,7 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 
-class EventCommand : Command("eventadmin", arrayOf("ea"), "hyperiol.events.admin") {
+class EventAdminCommand : Command("eventadmin", arrayOf("ea"), "hyperiol.events.admin") {
 
     private val eventsManager = EventsManager.instance
     private val commands = listOf(
@@ -89,9 +89,9 @@ class EventCommand : Command("eventadmin", arrayOf("ea"), "hyperiol.events.admin
     override fun execute(player: Player, args: Array<String>) {
         if(!eventsManager.editSession.containsKey(player.uniqueId)) {
             when(args[0]) {
-                "create" -> EventCreateSubCommand.process(player, args)
-                "session" -> EventEditSubCommand.process(player, args)
-                "start" -> EventStartSubCommand.process(player, args)
+                "create" -> EventAdminCreateSubCommand.process(player, args)
+                "session" -> EventAdminEditSubCommand.process(player, args)
+                "start" -> EventAdminStartSubCommand.process(player, args)
             }
 
         } else {
@@ -99,15 +99,15 @@ class EventCommand : Command("eventadmin", arrayOf("ea"), "hyperiol.events.admin
             val currentEvent = if(eventData.uniqueId == eventsManager.currentEvent?.uniqueId) eventsManager.currentEvent else null
 
             when(args[0]) {
-                "start" -> EventStartSubCommand.process(player, args)
-                "setregenerative" -> EventSetRegenerativeBlocksCommand.process(player, args, eventData)
-                "create" -> EventCreateSubCommand.process(player, args)
-                "session" -> EventEditSubCommand.process(player, args)
-                "description" -> EventDescriptionSubCommand.process(player, args, eventData, currentEvent)
-                "entity" -> EventEntitySpawnPointSubCommand.process(player, args, eventData, currentEvent)
-                "quests" -> EventQuestSubCommand.process(player, args, eventData, currentEvent)
-                "setportal" -> EventSetPortalSubCommand.processSetPortal(player, args, eventData, currentEvent)
-                "setspawn" -> EventSetSpawnSubCommand.process(player, args, eventData)
+                "start" -> EventAdminStartSubCommand.process(player, args)
+                "setregenerative" -> EventAdminSetRegenerativeBlocksCommand.process(player, args, eventData)
+                "create" -> EventAdminCreateSubCommand.process(player, args)
+                "session" -> EventAdminEditSubCommand.process(player, args)
+                "description" -> EventAdminDescriptionSubCommand.process(player, args, eventData, currentEvent)
+                "entity" -> EventAdminEntitySpawnPointSubCommand.process(player, args, eventData, currentEvent)
+                "quests" -> EventAdminQuestSubCommand.process(player, args, eventData, currentEvent)
+                "setportal" -> EventAdminSetPortalSubCommand.processSetPortal(player, args, eventData, currentEvent)
+                "setspawn" -> EventAdminSetSpawnSubCommand.process(player, args, eventData)
                 "reload" -> {
                     EventsManager.instance.currentEvent?.reload()
                     player.sendColoured("&aPoprawnie zrestartowano obecne wydarzenie!")

@@ -33,14 +33,6 @@ class EntityDeathListener : Listener {
         entity.remove()
     }
     @EventHandler
-    fun onActiveMobDeath(event: MythicMobDeathEvent) {
-        val killer = event.killer ?: return
-        if(killer.uniqueId == event.mob.uniqueId) {
-            event.mob.remove()
-            return
-        }
-    }
-    @EventHandler
     fun onEntityDeath(event: MythicMobDeathEvent) {
         val killer = event.killer ?: return
         if(killer.uniqueId == event.mob.uniqueId) {
@@ -55,7 +47,7 @@ class EntityDeathListener : Listener {
         if(activeMob.entity.world != world) return
 
         Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-            currentEvent.eventEntitiesManager.removeEntity(activeMob)
-        }, 10)
+            currentEvent.eventEntitiesHandler.removeEntity(activeMob)
+        }, 20)
     }
 }

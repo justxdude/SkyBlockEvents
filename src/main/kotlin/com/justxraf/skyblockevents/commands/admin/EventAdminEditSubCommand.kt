@@ -1,11 +1,11 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import org.bukkit.entity.Player
 
-object EventEditSubCommand {
+object EventAdminEditSubCommand {
 
     /*
     /event session create <id>

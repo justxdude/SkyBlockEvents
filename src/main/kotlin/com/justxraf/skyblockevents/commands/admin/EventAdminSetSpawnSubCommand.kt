@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxdude.islandcore.utils.toLocationString
 import com.justxraf.networkapi.util.LocationUtil.isItSafe
@@ -10,7 +10,7 @@ import com.justxraf.skyblockevents.util.getWorldEditSelection
 import com.justxraf.skyblockevents.util.hasWorldEditSelection
 import org.bukkit.entity.Player
 
-object EventSetSpawnSubCommand {
+object EventAdminSetSpawnSubCommand {
     private val eventsManager = EventsManager.instance
 
     private fun shouldProcess(player: Player, sessionEvent: EventData): Boolean {

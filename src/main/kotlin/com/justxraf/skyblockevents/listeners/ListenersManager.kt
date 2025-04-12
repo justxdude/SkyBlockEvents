@@ -16,6 +16,8 @@ import com.justxraf.skyblockevents.listeners.players.PlayerDeathListener
 import com.justxraf.skyblockevents.listeners.players.PlayerJoinListener
 import com.justxraf.skyblockevents.listeners.players.PlayerMoveListener
 import com.justxraf.skyblockevents.listeners.players.PlayerQuitListener
+import com.justxraf.skyblockevents.listeners.points.BlockBreakListener
+import com.justxraf.skyblockevents.listeners.points.EntityKillListener
 import com.justxraf.skyblockevents.listeners.portals.PortalBreakListener
 import com.justxraf.skyblockevents.listeners.portals.PortalJoinListener
 import com.justxraf.skyblockevents.util.skyBlockEventsResourcesManager
@@ -66,6 +68,13 @@ class ListenersManager(private val plugin: JavaPlugin) {
         plugin.registerListeners(
             PortalBreakListener(),
             PortalJoinListener(),
+        )
+
+        // Points
+
+        plugin.registerListeners(
+            BlockBreakListener(),
+            EntityKillListener(),
         )
 
         Bukkit.getScheduler().runTaskTimer(SkyBlockEvents.instance, Runnable {

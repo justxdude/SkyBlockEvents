@@ -6,8 +6,9 @@ import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
-import com.justxraf.skyblockevents.events.event.EventEntitiesManager
-import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsManager
+import com.justxraf.skyblockevents.events.event.EventEntitiesHandler
+import com.justxraf.skyblockevents.events.points.PointsHandler
+import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.UpdateOneModel
@@ -205,8 +206,9 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             0,
             mutableListOf(""),
             Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0),
-            RegenerativeMaterialsManager(),
-            EventEntitiesManager()
+            RegenerativeMaterialsHandler(),
+            EventEntitiesHandler(),
+            PointsHandler(mutableMapOf(), mutableMapOf()),
         ) // As a debug if there are no events in the database
 
         val event = events.values.random().fromData()

@@ -22,8 +22,8 @@ class EventLeaderboardGUI(private val player: Player, private val user: User) : 
 
         // 11, 13
         setButton(4, information()) { }
-        setButton(11, islandLeaderboardButton()) { }
-        setButton(13, playerLeaderboardButton()) { }
+        setButton(12, islandLeaderboardButton()) { }
+        setButton(14, playerLeaderboardButton()) { }
     }
     private fun islandLeaderboardButton(): ItemStack {
         val pointsHandler = eventsManager.currentEvent.pointsHandler
@@ -47,11 +47,11 @@ class EventLeaderboardGUI(private val player: Player, private val user: User) : 
                     "&7 ",
                     "&7Pozycja Twojej wyspy w rankingu: &b$pos&7."
                 )
-            } else {
-                lore += listOf("&7 ", "&7Żaden członek Twojej wyspy nie zdobył punktów w tym wydarzeniu!")
             }
+        } else {
+            lore += listOf("&7 ", "&7Żaden członek Twojej wyspy nie zdobył punktów w tym wydarzeniu!")
         }
-        val item = ItemBuilder(Material.PLAYER_HEAD, "&6Tabela Wyników Wysp")
+        val item = ItemBuilder(Material.GRASS_BLOCK, "&6Tabela Wyników Wysp")
             .lore(lore)
             .build()
 
@@ -73,16 +73,16 @@ class EventLeaderboardGUI(private val player: Player, private val user: User) : 
                 "$color${array[0]}&7. $color${user.name} &8- &7${array[1]} Punktów."
             }.toTypedArray())
 
-        if(!topPlayers.any { it.first.uniqueId != player.uniqueId }) {
+        if(topPlayers.any { it.first.uniqueId == player.uniqueId }) {
             if(pointsHandler.playersLeaderboard.any { it.first == player.uniqueId }) {
                 val pos = pointsHandler.getPlayerPosition(player.uniqueId)
                 lore += listOf(
                     "&7 ",
                     "&7Twoja pozycja w rankingu: &b$pos&7."
                 )
-            } else {
-                lore += listOf("&7 ", "&7Nie zdobyłes(as) jeszcze żadnych punktów w obecnym wydarzeniu!")
             }
+        } else {
+            lore += listOf("&7 ", "&7Nie zdobyłeś(aś) jeszcze żadnych punktów w obecnym wydarzeniu!")
         }
         val item = ItemBuilder(Material.PLAYER_HEAD, "&6Tabela Wyników Graczy")
             .lore(lore)
@@ -95,7 +95,7 @@ class EventLeaderboardGUI(private val player: Player, private val user: User) : 
             "&8- &eZabijanie Potworów",
             "&8- &6Wydobywanie Surowców",
             "&8- &eWykonywanie Misji", "&7 ",
-            "&7Nagrody zostaną nadane dla trzech pierwszych graczy", "&7Oraz najlepszej wyspy."
+            "&7Nagrody zostaną nadane dla trzech", "&7pierwszych graczy, oraz najlepszej wyspy."
         ))
         .build()
 }

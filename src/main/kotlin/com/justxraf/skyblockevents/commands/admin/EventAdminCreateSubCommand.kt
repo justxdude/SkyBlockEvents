@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.EventType
@@ -6,12 +6,10 @@ import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.util.*
 import com.sk89q.worldedit.bukkit.WorldEditPlugin
-import com.sk89q.worldedit.regions.CuboidRegion
 import org.bukkit.Bukkit
-import org.bukkit.Location
 import org.bukkit.entity.Player
 
-object EventCreateSubCommand {
+object EventAdminCreateSubCommand {
     private val eventsManager = EventsManager.instance
     private val worldEdit = Bukkit.getPluginManager().getPlugin("WorldEdit") as WorldEditPlugin
     // /event create <type>

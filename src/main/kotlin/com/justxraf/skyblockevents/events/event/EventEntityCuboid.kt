@@ -22,7 +22,7 @@ class EventEntityCuboid(
     private var limit: Int, // How many entities should be spawned.
 ) {
     // live
-    @Transient lateinit var eventEntitiesManager: EventEntitiesManager
+    @Transient lateinit var eventEntitiesHandler: EventEntitiesHandler
     @Transient lateinit var entities: MutableList<ActiveMob>
     @Transient lateinit var task: BukkitTask
     @Transient var isSetup: Boolean = false
@@ -33,7 +33,7 @@ class EventEntityCuboid(
         val location = cuboid.first
         val visibilityDistanceSquared = 30 * 30
 
-        val event = eventEntitiesManager.event
+        val event = eventEntitiesHandler.event
 
         return event.activePlayers.any { (uuid, player) ->
             val playerLocation = player.player.location
@@ -49,9 +49,9 @@ class EventEntityCuboid(
 
 
 
-    fun setup(eventEntitiesManager: EventEntitiesManager) {
+    fun setup(eventEntitiesHandler: EventEntitiesHandler) {
         entities = mutableListOf()
-        this.eventEntitiesManager = eventEntitiesManager
+        this.eventEntitiesHandler = eventEntitiesHandler
 
         spawnDelay = when (level) {
             1 -> 90
@@ -86,14 +86,14 @@ class EventEntityCuboid(
         task.cancel()
         removeEntities()
     }
-    fun reload(eventEntitiesManager: EventEntitiesManager) {
+    fun reload(eventEntitiesHandler: EventEntitiesHandler) {
         if(!isSetup) {
-            setup(eventEntitiesManager)
+            setup(eventEntitiesHandler)
             return
         }
         stop()
 
-        setup(eventEntitiesManager)
+        setup(eventEntitiesHandler)
     }
 
     private fun checkEntities() {
@@ -121,7 +121,7 @@ class EventEntityCuboid(
             mob.showCustomNameplate = true
 
             entities.add(mob)
-            eventEntitiesManager.addEntity(mob.uniqueId, this)
+            eventEntitiesHandler.addEntity(mob.uniqueId, this)
 
             mob.save()
 

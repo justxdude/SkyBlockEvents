@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxdude.islandcore.utils.toLocationString
 import com.justxraf.networkapi.util.LocationUtil.isItSafe
@@ -11,7 +11,7 @@ import com.justxraf.skyblockevents.util.getLookingDirection
 import org.bukkit.Location
 import org.bukkit.entity.Player
 
-object EventSetPortalSubCommand {
+object EventAdminSetPortalSubCommand {
 
     /*
 

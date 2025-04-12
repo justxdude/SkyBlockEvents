@@ -2,12 +2,13 @@ package com.justxraf.skyblockevents.events.data
 
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
-import com.justxraf.skyblockevents.events.event.EventEntitiesManager
+import com.justxraf.skyblockevents.events.event.EventEntitiesHandler
 import com.justxraf.skyblockevents.events.event.EventEntityCuboid
+import com.justxraf.skyblockevents.events.points.PointsHandler
 import com.justxraf.skyblockevents.events.portals.EventPortal
 import com.justxraf.skyblockevents.events.portals.EventPortalType
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterial
-import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsManager
+import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
 import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Location
 import org.bukkit.Material
@@ -39,10 +40,14 @@ data class EventData(
 
     var regenerativeMaterials: MutableList<RegenerativeMaterial>? = null,
 
+    // Points
+    var playerPoints: MutableMap<UUID, Int>? = null
+
     ) {
     fun fromData(): Event {
-        val regenerativeBlocksManager = RegenerativeMaterialsManager(regenerativeMaterials ?: mutableListOf())
-        val eventEntitiesManager = EventEntitiesManager(eventEntityCuboids ?: mutableMapOf())
+        val regenerativeBlocksManager = RegenerativeMaterialsHandler(regenerativeMaterials ?: mutableListOf())
+        val eventEntitiesHandler = EventEntitiesHandler(eventEntityCuboids ?: mutableMapOf())
+        val pointsHandler = PointsHandler(playerPoints ?: mutableMapOf(), mutableMapOf())
 
         val event = Event(
             name,
@@ -53,7 +58,8 @@ data class EventData(
             description,
             spawnLocation,
             regenerativeBlocksManager,
-            eventEntitiesManager,
+            eventEntitiesHandler,
+            pointsHandler,
             requiredLevel,
             portals,
             spawnRegion,

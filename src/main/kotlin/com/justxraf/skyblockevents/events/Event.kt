@@ -12,12 +12,13 @@ import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
-import com.justxraf.skyblockevents.events.event.EventEntitiesManager
+import com.justxraf.skyblockevents.events.event.EventEntitiesHandler
 import com.justxraf.skyblockevents.events.player.EventPlayer
+import com.justxraf.skyblockevents.events.points.PointsHandler
 import com.justxraf.skyblockevents.events.portals.EventPortal
 import com.justxraf.skyblockevents.events.portals.EventPortalType
 import com.justxraf.skyblockevents.events.portals.PortalRemovalReason
-import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsManager
+import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
 import com.justxraf.skyblockevents.translations.SkyBlockEventsResourcesManager
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.justxraf.skyblockevents.util.getEndOfDayMillis
@@ -53,9 +54,10 @@ open class Event(
     open var description: MutableList<String>,
     open var spawnLocation: Location,
 
-    open var regenerativeMaterialsManager: RegenerativeMaterialsManager,
+    open var regenerativeMaterialsHandler: RegenerativeMaterialsHandler,
+    open var eventEntitiesHandler: EventEntitiesHandler,
 
-    open var eventEntitiesManager: EventEntitiesManager,
+    open var pointsHandler: PointsHandler,
 
     var requiredLevel: Int = 0,
 
@@ -73,7 +75,7 @@ open class Event(
     @Transient lateinit var activePlayers: MutableMap<UUID, EventPlayer>
     @Transient var disabledNotifications: MutableList<UUID> = mutableListOf()
     @Transient private var notificationsTask: BukkitTask? = null
-    private var activityCheckTask: BukkitTask? = null
+    @Transient private var activityCheckTask: BukkitTask? = null
 
     open fun start() {
         activePlayers = mutableMapOf()
@@ -92,8 +94,10 @@ open class Event(
 
         runTasks()
 
-        eventEntitiesManager.setup(this)
-        regenerativeMaterialsManager.setup(this)
+        eventEntitiesHandler.setup(this)
+        regenerativeMaterialsHandler.setup(this)
+        pointsHandler.setup(this)
+
     }
     open fun end() {
         clearPlayersQuests()
@@ -108,9 +112,10 @@ open class Event(
         activityCheckTask?.cancel()
         notificationsTask?.cancel()
 
-        eventEntitiesManager.stop()
-
-        regenerativeMaterialsManager.stop()
+        eventEntitiesHandler.stop()
+        regenerativeMaterialsHandler.stop()
+        pointsHandler.stop()
+        pointsHandler.players.clear()
 
         playersWhoJoined.clear()
     }
@@ -132,8 +137,9 @@ open class Event(
 
             removeQuestNPCHologram()
 
-            eventEntitiesManager.reload(this)
-            regenerativeMaterialsManager.reload(this)
+            eventEntitiesHandler.reload(this)
+            regenerativeMaterialsHandler.reload(this)
+            pointsHandler.reload(this)
 
             spawnQuestNPC()
         }, 30)
@@ -191,7 +197,7 @@ open class Event(
         if(!playersWhoJoined.contains(player.uniqueId)) {
             player.sendColouredActionBar("joined.event".eventsTranslation(player, name))
             playersWhoJoined.add(player.uniqueId)
-            if(description.isNotEmpty())
+            if(description.size != 1)
                 description.forEach { player.sendColoured(it) }
         } else {
             player.sendColouredActionBar("teleported.event".eventsTranslation(player, name))
@@ -422,8 +428,9 @@ open class Event(
         questNPCLocation,
         quests,
         playersWhoJoined,
-        eventEntitiesManager.cuboids,
-        regenerativeMaterialsManager.regenerativeMaterials
+        eventEntitiesHandler.cuboids,
+        regenerativeMaterialsHandler.regenerativeMaterials,
+        pointsHandler.players
     )
 
 }

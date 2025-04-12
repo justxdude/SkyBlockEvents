@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
@@ -6,7 +6,7 @@ import com.justxraf.skyblockevents.events.data.EventData
 import org.bukkit.Material
 import org.bukkit.entity.Player
 
-object EventSetRegenerativeBlocksCommand {
+object EventAdminSetRegenerativeBlocksCommand {
     // /eventadmin setregenerative <type>
     private fun shouldProcess(player: Player, args: Array<String>): Material? {
         if(args.size < 2) {

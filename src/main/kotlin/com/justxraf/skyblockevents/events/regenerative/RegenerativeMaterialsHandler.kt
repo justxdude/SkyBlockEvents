@@ -7,7 +7,7 @@ import org.bukkit.Material
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 
-class RegenerativeMaterialsManager(
+class RegenerativeMaterialsHandler(
     var regenerativeMaterials: MutableList<RegenerativeMaterial> = mutableListOf(),
     private var task: BukkitTask? = null,
 ) {

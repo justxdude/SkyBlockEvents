@@ -9,7 +9,7 @@ import org.bukkit.entity.Player
 import java.util.UUID
 import kotlin.jvm.optionals.getOrNull
 
-class EventEntitiesManager(
+class EventEntitiesHandler(
     val cuboids: MutableMap<Int, EventEntityCuboid> = mutableMapOf()
 ) {
     @Transient

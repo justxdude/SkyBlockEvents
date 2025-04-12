@@ -1,6 +1,6 @@
 package com.justxraf.skyblockevents
 
-import com.justxraf.skyblockevents.commands.EventCommand
+import com.justxraf.skyblockevents.commands.admin.EventAdminCommand
 import com.justxraf.skyblockevents.commands.players.EventInfoCommand
 import com.justxraf.skyblockevents.components.ComponentsManager
 import org.bukkit.Bukkit
@@ -18,7 +18,7 @@ class SkyBlockEvents : JavaPlugin() {
             ComponentsManager.initialize(this)
             dataFolder.mkdirs()
 
-            EventCommand()
+            EventAdminCommand()
             EventInfoCommand()
 
         }catch (e: Exception) {

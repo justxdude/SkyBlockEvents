@@ -21,13 +21,13 @@ class RegenerativeBlockListener : Listener {
 
         if (!listenersManager.doChecks(location, currentEvent.spawnLocation)) return
 
-        if (!currentEvent.regenerativeMaterialsManager.isRegenerative(block.type)
+        if (!currentEvent.regenerativeMaterialsHandler.isRegenerative(block.type)
             && !event.player.hasPermission("hyperiol.events.admin")) {
             event.isCancelled = true
             return
         }
 
-        currentEvent.regenerativeMaterialsManager.breakRegenerativeMaterial(location, block.type)
+        currentEvent.regenerativeMaterialsHandler.breakRegenerativeMaterial(location, block.type)
     }
     @EventHandler(priority = EventPriority.LOWEST)
     fun onBlockPlace(event: BlockPlaceEvent) {

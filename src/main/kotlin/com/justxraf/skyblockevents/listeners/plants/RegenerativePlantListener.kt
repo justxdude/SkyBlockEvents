@@ -4,13 +4,9 @@ import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.justxraf.skyblockevents.util.shouldSendMessage
-import org.bukkit.Material
-import org.bukkit.block.data.Ageable
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.player.PlayerInteractEvent
 import java.util.*
 
 class RegenerativePlantListener : Listener {
@@ -28,13 +24,13 @@ class RegenerativePlantListener : Listener {
         val location = block.location
 
 
-        if (!currentEvent.regenerativeMaterialsManager.isRegenerative(block.type)) return
+        if (!currentEvent.regenerativeMaterialsHandler.isRegenerative(block.type)) return
 
-        if(!currentEvent.regenerativeMaterialsManager.canBreakMaterialAt(location, block.type)) {
+        if(!currentEvent.regenerativeMaterialsHandler.canBreakMaterialAt(location, block.type)) {
             if(timer.shouldSendMessage(player.uniqueId)) player.sendColoured("let.it.grow".eventsTranslation(player))
             event.isCancelled = true
             return
         }
-        currentEvent.regenerativeMaterialsManager.breakRegenerativeMaterial(location, block.type)
+        currentEvent.regenerativeMaterialsHandler.breakRegenerativeMaterial(location, block.type)
     }
 }

@@ -1,10 +1,10 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.EventsManager
 import org.bukkit.entity.Player
 
-object EventStartSubCommand {
+object EventAdminStartSubCommand {
     // /event start <id>.
 
     private val eventsManager = EventsManager.instance

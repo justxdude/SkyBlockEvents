@@ -1,4 +1,4 @@
-package com.justxraf.skyblockevents.commands
+package com.justxraf.skyblockevents.commands.admin
 
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.Event
@@ -9,7 +9,7 @@ import io.lumine.mythic.api.MythicProvider
 import org.bukkit.entity.Player
 import kotlin.jvm.optionals.getOrNull
 
-object EventEntitySpawnPointSubCommand {
+object EventAdminEntitySpawnPointSubCommand {
     /*
     /event entity spawnpoint remove
     /event entity spawnpoint create <entity_name> <level> <limit> <spawn_delay>

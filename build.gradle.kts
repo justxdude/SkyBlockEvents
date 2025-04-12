@@ -2,8 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     java
-    kotlin("jvm") version "2.0.0"
-    application
+    kotlin("jvm") version "2.0.21"
 }
 
 
@@ -30,20 +29,20 @@ repositories {
     maven {
         url = uri(("https://repo.papermc.io/repository/maven-public/"))
     }
-    maven {
-        name = "citizensRepo"
-        url = uri("https://maven.citizensnpcs.co/repo")
-    }
     maven { url = uri("https://jitpack.io") }
+
     maven("https://repo.fancyplugins.de/releases")
+    maven("https://mvn.lumine.io/repository/maven-public/")
 }
 
 dependencies {
-    compileOnly("de.oliver:FancyNpcs:2.2.0")
-    compileOnly("de.oliver:FancyHolograms:2.3.0")
+    compileOnly("io.lumine:Mythic-Dist:5.8.1")
 
-    compileOnly("org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT")
-    compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
+    compileOnly("de.oliver:FancyNpcs:2.4.4")
+    compileOnly("de.oliver:FancyHolograms:2.4.2")
+
+    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+
     compileOnly(files("lib/SkyblockAPI.jar"))
     compileOnly(files("lib/IslandCore.jar"))
     compileOnly(files("lib/NetworkAPI.jar"))
@@ -65,8 +64,4 @@ kotlin {
 }
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "21"
-}
-
-application {
-    mainClass.set("MainKt")
 }

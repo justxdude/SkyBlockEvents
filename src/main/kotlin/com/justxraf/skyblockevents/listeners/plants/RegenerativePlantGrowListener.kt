@@ -15,7 +15,7 @@ class RegenerativePlantGrowListener : Listener {
         val block = event.block
 
         if (block.location.world != currentEvent.spawnLocation.world) return
-        if (!currentEvent.regenerativeMaterialsManager.isRegenerative(block.type)) return
+        if (!currentEvent.regenerativeMaterialsHandler.isRegenerative(block.type)) return
 
         val ageable = block.blockData as? Ageable
         if (currentEvent.activePlayers.isEmpty()) {

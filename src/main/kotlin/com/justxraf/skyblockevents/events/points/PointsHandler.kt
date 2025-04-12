@@ -6,6 +6,7 @@ import com.justxdude.islandcore.islands.islandmanager.IslandManager
 import com.justxdude.skyblockapi.user.User
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.skyblockevents.components.ComponentsManager
+import com.justxraf.skyblockevents.events.Event
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitRunnable
@@ -20,7 +21,7 @@ class PointsHandler(
      */
 
 
-    private var players: MutableMap<UUID, Int>,
+    internal var players: MutableMap<UUID, Int>,
     private var islands: MutableMap<Int, Int> // uuid, amount
 ) {
     private var islandChecker: BukkitTask? = null
@@ -35,11 +36,15 @@ class PointsHandler(
 
      */
 
-    fun initialize() {
+    fun setup(event: Event) {
         startTasks()
     }
     fun stop() {
         stopTasks()
+    }
+    fun reload(event: Event) {
+        stop()
+        setup(event)
     }
     private fun startTasks() {
         islandChecker = object : BukkitRunnable() {
@@ -47,7 +52,7 @@ class PointsHandler(
                 islandsCheck()
                 updateLeaderboard()
             }
-        }.runTaskTimer(ComponentsManager.instance.plugin, 0, 20 * 10) // Check every 5 seconds.
+        }.runTaskTimer(ComponentsManager.instance.plugin, 0, 20 * 10) // Check every 10 seconds.
     }
     private fun stopTasks() {
         islandChecker?.cancel()
@@ -78,9 +83,12 @@ class PointsHandler(
         players[player] = currentAmount + amount
     }
     fun getIslandPosition(id: Int): Int
-        = islandsLeaderboard.indexOfFirst { it.first == id }
+        = islandsLeaderboard.indexOfFirst { it.first == id } + 1
     fun getPlayerPosition(uuid: UUID): Int
-        = playersLeaderboard.indexOfFirst { it.first == uuid }
+        = playersLeaderboard.indexOfFirst { it.first == uuid } + 1
+    fun getPlayerPoints(uuid: UUID) = players[uuid] ?: 0
+
+
     fun getTopIslands(): List<Pair<Island, Array<Int>>> {
         val topIslands = islandsLeaderboard.take(10)
         var pos = 1
@@ -92,7 +100,7 @@ class PointsHandler(
             list += Pair(island, arrayOf(pos, points))
            pos++
         }
-        return list.sortedByDescending { it.second[0] }
+        return list.sortedBy { it.second[0] }
     }
     fun getTopPlayers(): List<Pair<User, Array<Int>>> {
         val topPlayers = playersLeaderboard.take(10)
@@ -105,7 +113,7 @@ class PointsHandler(
             list += Pair(user, arrayOf(pos, points))
             pos++
         }
-        return list.sortedByDescending { it.second[0] }
+        return list.sortedBy { it.second[0] }
     }
 
 }
