@@ -7,8 +7,6 @@ import com.justxraf.skyblockevents.guis.EventLeaderboardGUI
 import org.bukkit.entity.Player
 
 object EventLeaderboardSubCommand {
-    // /event leaderboard todo - Add it later for event command, cannot access the newest version now.
-
     private val eventsManager = EventsManager.Companion.instance
     fun execute(player: Player) {
         val currentEvent = eventsManager.currentEvent

@@ -6,6 +6,7 @@ import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
+import com.justxraf.skyblockevents.events.data.FinishedEvent
 import com.justxraf.skyblockevents.events.event.EventEntitiesHandler
 import com.justxraf.skyblockevents.events.points.PointsHandler
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
@@ -28,8 +29,10 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     lateinit var currentEvent: Event
     var events: MutableMap<Int, EventData> = mutableMapOf()
     val editSession = mutableMapOf<UUID, EventData>()
+    val finishedEvents: MutableMap<UUID, FinishedEvent> = mutableMapOf()
 
     //db
+    // TODO add a new collection for finished events
     private val client = SkyblockAPI.instance.database.client
     private val database = client.getDatabase("skyblockevents")
     private val collection = database.getCollection("eventsmanager")
@@ -56,8 +59,11 @@ class EventsManager(private val componentsManager: ComponentsManager) {
 
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             if (shouldFinish()) {
+                currentEvent.end()
+
                 currentEvent = generateNewEvent()
                 saveCurrentEvent()
+                return@Runnable
             }
             eventTimeCheck()
         }, 0L, 20)
@@ -65,6 +71,9 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             saveEvents()
         }, 0L, 20 * 20)
+    }
+    private fun endEvent() {
+
     }
     private val timeMessages = mapOf(
         1L to "second",

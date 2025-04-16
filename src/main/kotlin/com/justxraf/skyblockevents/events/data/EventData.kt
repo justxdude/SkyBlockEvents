@@ -41,7 +41,8 @@ data class EventData(
     var regenerativeMaterials: MutableList<RegenerativeMaterial>? = null,
 
     // Points
-    var playerPoints: MutableMap<UUID, Int>? = null
+    var playerPoints: MutableMap<UUID, Int>? = null,
+    val uuid: UUID? = null,
 
     ) {
     fun fromData(): Event {
@@ -66,6 +67,7 @@ data class EventData(
             questNPCLocation,
             quests,
             playersWhoJoined,
+            uuid
         )
         val questsCopy = quests?.toList()
 

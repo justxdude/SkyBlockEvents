@@ -1,5 +1,8 @@
 package com.justxraf.skyblockevents.events
 
+import com.justxdude.skyblockapi.rewards.ItemReward
+import com.justxdude.skyblockapi.rewards.MoneyReward
+import com.justxdude.skyblockapi.rewards.Reward
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.networkapi.util.asAudience
@@ -33,9 +36,11 @@ import de.oliver.fancyholograms.api.data.property.Visibility
 import de.oliver.fancyholograms.api.hologram.Hologram
 import de.oliver.fancynpcs.api.FancyNpcsPlugin
 import de.oliver.fancynpcs.api.NpcData
+import gg.flyte.twilight.builders.item.ItemBuilder
 import kotlinx.coroutines.Runnable
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
@@ -69,6 +74,8 @@ open class Event(
 
     open var quests: MutableList<Int>? = null,
     open val playersWhoJoined: MutableList<UUID> = mutableListOf(),
+
+    open var uuid: UUID? = null
 ) {
     @delegate:Transient
     private val components by lazy { ComponentsManager.instance }
@@ -78,6 +85,8 @@ open class Event(
     @Transient private var activityCheckTask: BukkitTask? = null
 
     open fun start() {
+        uuid = UUID.randomUUID()
+
         activePlayers = mutableMapOf()
         disabledNotifications = mutableListOf()
 
@@ -96,7 +105,9 @@ open class Event(
 
         eventEntitiesHandler.setup(this)
         regenerativeMaterialsHandler.setup(this)
+
         pointsHandler.setup(this)
+        pointsHandler.players.clear()
 
     }
     open fun end() {
@@ -118,6 +129,17 @@ open class Event(
         pointsHandler.players.clear()
 
         playersWhoJoined.clear()
+    }
+
+    open fun giveRewards() {
+        val rewardsFirst = listOf<Reward>(
+            MoneyReward(10000.00),
+            ItemReward(listOf(ItemBuilder(Material.GLOWSTONE).build()))
+        )
+
+        rewardsFirst.forEach {
+            it.sendRewardToUser()
+        }
     }
 
     open fun reload() {
@@ -430,7 +452,8 @@ open class Event(
         playersWhoJoined,
         eventEntitiesHandler.cuboids,
         regenerativeMaterialsHandler.regenerativeMaterials,
-        pointsHandler.players
+        pointsHandler.players,
+        uuid
     )
 
 }

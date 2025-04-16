@@ -14,11 +14,6 @@ import org.bukkit.scheduler.BukkitTask
 import java.util.*
 
 class PointsHandler(
-    /*
-    todo Make sure to handle everything in event class and save in eventdata---
-    todo Make a class extending Reward to add points for quests.
-
-     */
 
 
     internal var players: MutableMap<UUID, Int>,
