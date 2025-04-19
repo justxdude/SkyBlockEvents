@@ -24,7 +24,7 @@ class PortalJoinListener : Listener {
     @EventHandler
     fun onPlayerPortalJoin(event: PlayerMoveEvent) {
         val player = event.player
-        val location = event.to ?: return
+        val location = event.to
 
         val materialInLocation = location.world?.getBlockAt(player.location.add(.3, .5,.3))?.type ?: return
         if(materialInLocation != Material.NETHER_PORTAL) return
@@ -48,7 +48,7 @@ class PortalJoinListener : Listener {
                     player.sendColoured("not.enough.level".eventsTranslation(player, eventsManager.currentEvent.requiredLevel.toString()))
                     return
                 }
-                eventsManager.currentEvent.teleport(player)
+                eventsManager.currentEvent.eventUserHandler.teleport(player)
             }
         }
     }

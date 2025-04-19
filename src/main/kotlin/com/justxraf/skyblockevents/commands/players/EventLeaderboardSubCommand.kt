@@ -10,7 +10,7 @@ object EventLeaderboardSubCommand {
     private val eventsManager = EventsManager.Companion.instance
     fun execute(player: Player) {
         val currentEvent = eventsManager.currentEvent
-        val pointsHandler = currentEvent.pointsHandler
+        val pointsHandler = currentEvent.eventUserHandler.pointsHandler
 
         if(pointsHandler.playersLeaderboard.isEmpty()) {
             player.sendColoured("&cTabela wyników jest pusta, ponieważ nikt jeszcze nie zdobył żadnych punktów.")

@@ -91,10 +91,10 @@ class EventPortal(
             EventType.NETHER -> "nether".localeEventsTranslation(locale)
             EventType.FISHING -> "fishing".localeEventsTranslation(locale)
         },
-        "active.players".localeEventsTranslation(locale, event.activePlayers.size.toString()),
-        if (event.playersWhoJoined.isEmpty()) "nobody.joined".localeEventsTranslation(locale)
-        else if (event.playersWhoJoined.size == 1) "joined.one.player".localeEventsTranslation(locale)
-        else "joined.in.total".localeEventsTranslation(locale, event.playersWhoJoined.size.toString()),
+        "active.players".localeEventsTranslation(locale, event.eventUserHandler.users.size.toString()),
+        if (event.eventUserHandler.users.isEmpty()) "nobody.joined".localeEventsTranslation(locale)
+        else if (event.eventUserHandler.users.size == 1) "joined.one.player".localeEventsTranslation(locale)
+        else "joined.in.total".localeEventsTranslation(locale, event.eventUserHandler.users.size.toString()),
         "ends.in".localeEventsTranslation(locale, event.endsAt.toDate()),
         if(hasRequiredLevel) "enter.portal.to.join".localeEventsTranslation(locale)
         else "cannot.enter.portal".localeEventsTranslation(locale, event.requiredLevel.toString())

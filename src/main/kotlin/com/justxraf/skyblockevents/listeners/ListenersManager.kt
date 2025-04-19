@@ -20,6 +20,7 @@ import com.justxraf.skyblockevents.listeners.points.BlockBreakListener
 import com.justxraf.skyblockevents.listeners.points.EntityKillListener
 import com.justxraf.skyblockevents.listeners.portals.PortalBreakListener
 import com.justxraf.skyblockevents.listeners.portals.PortalJoinListener
+import com.justxraf.skyblockevents.listeners.quests.QuestFinishListener
 import com.justxraf.skyblockevents.util.skyBlockEventsResourcesManager
 import de.oliver.fancyholograms.api.FancyHologramsPlugin
 import kotlinx.coroutines.Runnable
@@ -75,6 +76,11 @@ class ListenersManager(private val plugin: JavaPlugin) {
         plugin.registerListeners(
             BlockBreakListener(),
             EntityKillListener(),
+        )
+
+        // Quests
+        plugin.registerListeners(
+            QuestFinishListener()
         )
 
         Bukkit.getScheduler().runTaskTimer(SkyBlockEvents.instance, Runnable {

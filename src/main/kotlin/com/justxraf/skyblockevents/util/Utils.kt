@@ -1,5 +1,6 @@
 package com.justxraf.skyblockevents.util
 
+import com.github.supergluelib.foundation.util.ItemBuilder
 import com.justxdude.skyblockapi.utils.Util.translate
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.networkapi.util.toColorComponent
@@ -13,6 +14,7 @@ import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import java.time.Duration
 import java.time.Instant
@@ -175,6 +177,14 @@ fun String.translateComponentWithClickEvent(player: Player, command: String, hov
     skyBlockEventsResourcesManager.getString(this, player.locale).format(*args).toColorComponent()
         .hoverEvent(HoverEvent.showText(hoverText.translate(player).toColorComponent()))
         .clickEvent(ClickEvent.runCommand("/$command"))
-
-
 fun Hologram.shouldRemove(locale: String) = this.name.contains(locale)
+fun Material.toItemStack(amount: Int = 1) = ItemBuilder(this, null, amount).build()
+
+fun getRankColor(rank: Int): String {
+    return when (rank) {
+        1 -> "&e" // Gold
+        2 -> "&6" // Orange (often used for Silver)
+        3 -> "&2" // Dark Green (often used for Bronze)
+        else -> "&7" // Gray
+    }
+}

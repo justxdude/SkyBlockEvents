@@ -3,10 +3,11 @@ package com.justxraf.skyblockevents.commands.admin
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.data.EventData
-import com.justxraf.skyblockevents.events.event.EventEntityCuboid
+import com.justxraf.skyblockevents.events.entities.EventEntityCuboid
 import com.justxraf.skyblockevents.util.*
 import io.lumine.mythic.api.MythicProvider
 import org.bukkit.entity.Player
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrNull
 
 object EventAdminEntitySpawnPointSubCommand {
@@ -102,7 +103,7 @@ object EventAdminEntitySpawnPointSubCommand {
 
         val (pos1Location, pos2Location) = player.getWorldEditSelection() ?: return
 
-        if(sessionEvent.eventEntityCuboids.isNullOrEmpty()) sessionEvent.eventEntityCuboids = mutableMapOf()
+        if(sessionEvent.eventEntityCuboids.isNullOrEmpty()) sessionEvent.eventEntityCuboids = ConcurrentHashMap()
 
         val nextID = if(sessionEvent.eventEntityCuboids.isNullOrEmpty()) 0 else sessionEvent.eventEntityCuboids?.keys?.max() ?: 0
 

@@ -2,17 +2,20 @@ package com.justxraf.skyblockevents.events.data
 
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
-import com.justxraf.skyblockevents.events.event.EventEntitiesHandler
-import com.justxraf.skyblockevents.events.event.EventEntityCuboid
-import com.justxraf.skyblockevents.events.points.PointsHandler
+import com.justxraf.skyblockevents.events.data.user.EventUserData
+import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
+import com.justxraf.skyblockevents.events.entities.EventEntityCuboid
+import com.justxraf.skyblockevents.users.points.PointsHandler
 import com.justxraf.skyblockevents.events.portals.EventPortal
 import com.justxraf.skyblockevents.events.portals.EventPortalType
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterial
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
+import com.justxraf.skyblockevents.users.EventUserHandler
 import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Location
 import org.bukkit.Material
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 data class EventData(
     var name: String,
@@ -28,27 +31,28 @@ data class EventData(
 
     var requiredLevel: Int = 0,
 
-    var portals: MutableMap<EventPortalType, EventPortal>? = null,
+    var portals: ConcurrentHashMap<EventPortalType, EventPortal>? = null,
     var spawnRegion: Pair<Location, Location>? = null,
 
     var questNPCLocation: Location? = null,
 
     var quests: MutableList<Int>? = null,
-    var playersWhoJoined: MutableList<UUID> = mutableListOf(),
 
-    var eventEntityCuboids: MutableMap<Int, EventEntityCuboid>? = null,
+    var eventEntityCuboids: ConcurrentHashMap<Int, EventEntityCuboid>? = null,
 
     var regenerativeMaterials: MutableList<RegenerativeMaterial>? = null,
 
     // Points
-    var playerPoints: MutableMap<UUID, Int>? = null,
+    var eventUsers: ConcurrentHashMap<UUID, EventUserData>? = null,
     val uuid: UUID? = null,
 
     ) {
     fun fromData(): Event {
         val regenerativeBlocksManager = RegenerativeMaterialsHandler(regenerativeMaterials ?: mutableListOf())
-        val eventEntitiesHandler = EventEntitiesHandler(eventEntityCuboids ?: mutableMapOf())
-        val pointsHandler = PointsHandler(playerPoints ?: mutableMapOf(), mutableMapOf())
+        val eventEntitiesHandler = EventEntitiesHandler(eventEntityCuboids ?: ConcurrentHashMap())
+
+        val users = eventUsers?.mapValuesTo(ConcurrentHashMap()) { it.value.toEventUser() }
+        val eventUserHandler = EventUserHandler(PointsHandler(), users ?: ConcurrentHashMap())
 
         val event = Event(
             name,
@@ -60,13 +64,12 @@ data class EventData(
             spawnLocation,
             regenerativeBlocksManager,
             eventEntitiesHandler,
-            pointsHandler,
+            eventUserHandler,
             requiredLevel,
             portals,
             spawnRegion,
             questNPCLocation,
             quests,
-            playersWhoJoined,
             uuid
         )
         val questsCopy = quests?.toList()

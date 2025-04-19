@@ -98,11 +98,11 @@ class QuestNPCInteractListener : Listener {
                 "10002.quest.dialogue3"
             )
             10003 -> sendTimedMessages(
-                arrayOf("10003.quest.dialogue", "10003.quest.dialogue2", "10003.quest.dialogue3"),
+                arrayOf("10003.quest.dialogue", "10003.quest.dialogue2"),
                 questUser,
                 player,
                 number,
-                "10003.quest.dialogue4"
+                "10003.quest.dialogue3"
             )
             10004 -> sendTimedMessages(
                 arrayOf("10004.quest.dialogue", "10004.quest.dialogue2", "10004.quest.dialogue3"),

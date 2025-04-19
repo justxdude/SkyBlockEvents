@@ -18,7 +18,7 @@ class RegenerativePlantGrowListener : Listener {
         if (!currentEvent.regenerativeMaterialsHandler.isRegenerative(block.type)) return
 
         val ageable = block.blockData as? Ageable
-        if (currentEvent.activePlayers.isEmpty()) {
+        if (currentEvent.eventUserHandler.users.isEmpty()) {
             event.isCancelled = true
         } else {
             if (ageable != null) {

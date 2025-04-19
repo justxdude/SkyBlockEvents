@@ -7,9 +7,10 @@ import com.justxdude.skyblockapi.user.UserSettingsFlag
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.events.data.FinishedEvent
-import com.justxraf.skyblockevents.events.event.EventEntitiesHandler
-import com.justxraf.skyblockevents.events.points.PointsHandler
+import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
+import com.justxraf.skyblockevents.users.points.PointsHandler
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
+import com.justxraf.skyblockevents.users.EventUserHandler
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.UpdateOneModel
@@ -24,6 +25,7 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoField
 import java.util.*
 import java.util.concurrent.CompletableFuture.supplyAsync
+import java.util.concurrent.ConcurrentHashMap
 
 class EventsManager(private val componentsManager: ComponentsManager) {
     lateinit var currentEvent: Event
@@ -40,6 +42,9 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     private val gson = SkyblockAPI.instance.database.gson
 
     private fun setup() {
+        events = mutableMapOf()
+        loadEvents()
+
         currentEvent = loadCurrentEvent()?.fromData() ?: generateNewEvent()
 
         if(shouldFinish()) {
@@ -49,13 +54,9 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             currentEvent.reload()
         }
 
-        events = mutableMapOf()
-        loadEvents()
-
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             saveCurrentEvent()
         }, 0L, 20 * 5)
-
 
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             if (shouldFinish()) {
@@ -71,9 +72,6 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
             saveEvents()
         }, 0L, 20 * 20)
-    }
-    private fun endEvent() {
-
     }
     private val timeMessages = mapOf(
         1L to "second",
@@ -94,7 +92,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
 
     private fun eventTimeCheck() {
         Bukkit.getScheduler().runTaskAsynchronously(componentsManager.plugin, Runnable {
-            currentEvent?.let { currentEvent ->
+            currentEvent.let { currentEvent ->
                 val timeLeft = currentEvent.endsAt - System.currentTimeMillis()
 
                 val message = "event.ends.in"
@@ -202,11 +200,37 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     }
 
     private fun generateNewEvent(): Event {
-        try {
-            currentEvent.end()
-        } catch (e: Exception) {
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
+        println("Generating new event!")
 
-        }
         if (events.isEmpty()) return Event(
             "",
             0,
@@ -217,11 +241,14 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0),
             RegenerativeMaterialsHandler(),
             EventEntitiesHandler(),
-            PointsHandler(mutableMapOf(), mutableMapOf()),
+            EventUserHandler(PointsHandler(), ConcurrentHashMap())
         ) // As a debug if there are no events in the database
 
         val event = events.values.random().fromData()
+
+        event.startedAt = System.currentTimeMillis()
         event.start()
+
         currentEvent = event
         saveCurrentEvent()
 
@@ -254,7 +281,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     private fun shouldFinish(): Boolean {
         val zone = ZoneId.of("Europe/Berlin")
 
-        val zdtLastUpdate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentEvent?.startedAt ?: 0), zone)
+        val zdtLastUpdate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentEvent.startedAt), zone)
         val zdtNow = ZonedDateTime.now(zone)
 
         return zdtLastUpdate.get(ChronoField.DAY_OF_YEAR) != zdtNow.get(ChronoField.DAY_OF_YEAR) ||

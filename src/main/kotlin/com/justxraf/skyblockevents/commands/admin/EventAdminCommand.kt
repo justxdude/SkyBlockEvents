@@ -109,7 +109,7 @@ class EventAdminCommand : Command("eventadmin", arrayOf("ea"), "hyperiol.events.
                 "setportal" -> EventAdminSetPortalSubCommand.processSetPortal(player, args, eventData, currentEvent)
                 "setspawn" -> EventAdminSetSpawnSubCommand.process(player, args, eventData)
                 "reload" -> {
-                    EventsManager.instance.currentEvent?.reload()
+                    EventsManager.instance.currentEvent.reload()
                     player.sendColoured("&aPoprawnie zrestartowano obecne wydarzenie!")
                 }
             }

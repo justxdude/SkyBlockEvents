@@ -25,7 +25,7 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
             player.sendColoured("wrong.amount.of.arguments".eventsTranslation(player, usage))
             return false
         }
-        val subCommands = "leaderboard"
+        val subCommands = listOf("leaderboard", "rewards")
         if(!subCommands.contains(args[0].eventsTranslation(player))) {
             player.sendColoured("wrong.usage".eventsTranslation(player, usage))
             return false
@@ -38,14 +38,15 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
         if(args.size == 1) {
             when(args[0].eventsTranslation(player)) {
                 "leaderboard" -> EventLeaderboardSubCommand.execute(player)
+                "rewards" -> EventRewardsSubCommand.execute(player)
             }
             return
         }
 
 
         val currentEvent = eventsManager.currentEvent
-        val joined = currentEvent.playersWhoJoined.size
-        val activePlayers = currentEvent.activePlayers.size
+        val joined = currentEvent.eventUserHandler.users.size
+        val users = currentEvent.eventUserHandler.users.size
         val message = mutableListOf<String>()
 
         val user = player.asUser() ?: return
@@ -58,9 +59,9 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
 
         message += listOf(
             "&8- &7${if(joined == 0) "nobody.joined".eventsTranslation(player) else if(joined == 1) "joined.one.player".eventsTranslation(player) else "joined.in.total".eventsTranslation(player, joined.toString())}",
-            "&8- &7${if(activePlayers == 0) "event.no.active.players".eventsTranslation(player)
-                else if(activePlayers == 1) "active.one.player".eventsTranslation(player)
-                    else "active.in.total".eventsTranslation(player, activePlayers.toString())}",
+            "&8- &7${if(users == 0) "event.no.active.players".eventsTranslation(player)
+                else if(users == 1) "active.one.player".eventsTranslation(player)
+                    else "active.in.total".eventsTranslation(player, users.toString())}",
             "ends.in".eventsTranslation(player, currentEvent.endsAt.toDate()),
             "&c",
             if(user.level < currentEvent.requiredLevel) "have.to.achieve.level.to.unlock" else "join.at"
@@ -80,7 +81,8 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
 
     override fun onTabComplete(sender: CommandSender, args: Array<String>): List<String> =
         if(args.size == 1) listOf(
-            "leaderboard".eventsTranslation(sender as Player)
+            "leaderboard".eventsTranslation(sender as Player),
+            "rewards".eventsTranslation(sender)
         ) else emptyList()
 
 }

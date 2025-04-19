@@ -1,17 +1,15 @@
 package com.justxraf.skyblockevents.events.data
 
+import com.justxraf.skyblockevents.events.data.user.EventUserData
 import java.util.UUID
 
-class FinishedEvent (
+data class FinishedEvent (
     val uuid: UUID,
     var islandsLeaderboard: List<Pair<Int, Int>>,
-
-    var playersLeaderboard: List<Pair<UUID, Int>>,
-    var playersWhoJoined: List<UUID>,
+    var users: Map<UUID, EventUserData>,
 
     var startedAt: Long,
-    var finishedAt: Long,
+    var finishedAt: Long
+)
 
-
-) {
-}
+// Can retrieve leaderboard from users.

@@ -26,7 +26,7 @@ class EventLeaderboardGUI(private val player: Player, private val user: User) : 
         setButton(14, playerLeaderboardButton()) { }
     }
     private fun islandLeaderboardButton(): ItemStack {
-        val pointsHandler = eventsManager.currentEvent.pointsHandler
+        val pointsHandler = eventsManager.currentEvent.eventUserHandler.pointsHandler
         val topIslands = pointsHandler.getTopIslands()
 
         val lore = mutableListOf(
@@ -58,7 +58,7 @@ class EventLeaderboardGUI(private val player: Player, private val user: User) : 
         return item
     }
     private fun playerLeaderboardButton(): ItemStack {
-        val pointsHandler = eventsManager.currentEvent.pointsHandler
+        val pointsHandler = eventsManager.currentEvent.eventUserHandler.pointsHandler
         val topPlayers = pointsHandler.getTopPlayers()
 
         val lore = mutableListOf(

@@ -21,9 +21,10 @@ class PlayerQuitListener : Listener {
         val player = event.player
         val currentEvent = eventsManager.currentEvent
 
-        if(!currentEvent.activePlayers.contains(player.uniqueId)) return
-
-        currentEvent.activePlayers.remove(player.uniqueId)
+        if(!currentEvent.eventUserHandler.users.contains(player.uniqueId)) return
+        val user = currentEvent.eventUserHandler.getUser(player.uniqueId)
+        user.isActive = false
+        user.player = null
     }
     @EventHandler
     fun dwa(event: ChunkUnloadEvent) {

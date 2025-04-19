@@ -23,7 +23,7 @@ class PlayerJoinListener : Listener {
 
         if(user.level < currentEvent.requiredLevel) return
 
-        if(currentEvent.playersWhoJoined.contains(player.uniqueId)) {
+        if(currentEvent.eventUserHandler.users.contains(player.uniqueId)) {
             if(user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)) {
                 currentEvent.joinMessage().forEach {
                     player.sendColoured(it)
@@ -36,8 +36,10 @@ class PlayerJoinListener : Listener {
                 }
             }
             val questUser = UsersManager.instance.getUser(player.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) ?: return
-            currentEvent.restartQuestsFor(questUser)
+            currentEvent.eventUserHandler.restartQuestsFor(questUser)
         }
+        val eventUser = currentEvent.eventUserHandler.getUser(event.player.uniqueId)
+        eventUser.lastCache = System.currentTimeMillis()
     }
     // World check
     @EventHandler
@@ -51,7 +53,7 @@ class PlayerJoinListener : Listener {
         val worldEvent = events.firstOrNull { it.spawnLocation.world == player.world } ?: return
 
         if(worldEvent.uniqueId == currentEvent.uniqueId) {
-            if(currentEvent.playersWhoJoined.contains(player.uniqueId)) return
+            if(currentEvent.eventUserHandler.users.contains(player.uniqueId)) return
         }
         if(player.hasPermission("hyperiol.events.admin")) return
 

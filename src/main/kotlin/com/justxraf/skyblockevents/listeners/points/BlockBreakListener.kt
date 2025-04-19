@@ -16,7 +16,12 @@ class BlockBreakListener : Listener {
         if(currentEvent.spawnLocation.world != world) return
 
         val player = event.player
-        currentEvent.pointsHandler.addPoints(player.uniqueId, getReward(event.block.type))
+        val eventUserHandler = currentEvent.eventUserHandler
+
+        val eventUser = eventUserHandler.getUser(player.uniqueId)
+
+        eventUser.addPoints(getReward(event.block.type))
+        eventUser.blocksMined += 1
     }
     private fun getReward(material: Material): Int {
         return when(material) {

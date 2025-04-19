@@ -1,34 +1,27 @@
 package com.justxraf.skyblockevents.events
 
-import com.justxdude.skyblockapi.rewards.ItemReward
-import com.justxdude.skyblockapi.rewards.MoneyReward
-import com.justxdude.skyblockapi.rewards.Reward
-import com.justxdude.skyblockapi.user.UserExtensions.asUser
-import com.justxdude.skyblockapi.user.UserSettingsFlag
-import com.justxraf.networkapi.util.asAudience
+import com.justxdude.islandcore.islands.Island
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.networkapi.util.sendColouredActionBar
-import com.justxraf.questscore.api.UserQuestCancelEvent
-import com.justxraf.questscore.users.QuestUser
 import com.justxraf.questscore.users.QuestUserLoadReason
 import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
-import com.justxraf.skyblockevents.events.event.EventEntitiesHandler
-import com.justxraf.skyblockevents.events.player.EventPlayer
-import com.justxraf.skyblockevents.events.points.PointsHandler
+import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
 import com.justxraf.skyblockevents.events.portals.EventPortal
 import com.justxraf.skyblockevents.events.portals.EventPortalType
 import com.justxraf.skyblockevents.events.portals.PortalRemovalReason
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
 import com.justxraf.skyblockevents.translations.SkyBlockEventsResourcesManager
+import com.justxraf.skyblockevents.users.EventStatistic
+import com.justxraf.skyblockevents.users.EventUserHandler
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.justxraf.skyblockevents.util.getEndOfDayMillis
+import com.justxraf.skyblockevents.util.getRankColor
 import com.justxraf.skyblockevents.util.isInCuboid
 import com.justxraf.skyblockevents.util.localeEventsTranslation
 import com.justxraf.skyblockevents.util.removeViewer
-import com.justxraf.skyblockevents.util.translateComponentWithClickEvent
 import de.oliver.fancyholograms.api.FancyHologramsPlugin
 import de.oliver.fancyholograms.api.HologramManager
 import de.oliver.fancyholograms.api.data.TextHologramData
@@ -36,15 +29,13 @@ import de.oliver.fancyholograms.api.data.property.Visibility
 import de.oliver.fancyholograms.api.hologram.Hologram
 import de.oliver.fancynpcs.api.FancyNpcsPlugin
 import de.oliver.fancynpcs.api.NpcData
-import gg.flyte.twilight.builders.item.ItemBuilder
 import kotlinx.coroutines.Runnable
 import org.bukkit.Bukkit
 import org.bukkit.Location
-import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitRunnable
-import org.bukkit.scheduler.BukkitTask
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.map
 import kotlin.jvm.optionals.getOrNull
 
 open class Event(
@@ -62,36 +53,24 @@ open class Event(
     open var regenerativeMaterialsHandler: RegenerativeMaterialsHandler,
     open var eventEntitiesHandler: EventEntitiesHandler,
 
-    open var pointsHandler: PointsHandler,
+    open var eventUserHandler: EventUserHandler,
 
     var requiredLevel: Int = 0,
 
-    var portals: MutableMap<EventPortalType, EventPortal>? = null,
+    var portals: ConcurrentHashMap<EventPortalType, EventPortal>? = null,
 
     open var spawnRegion: Pair<Location, Location>? = null,
 
     open var questNPCLocation: Location? = null,
 
     open var quests: MutableList<Int>? = null,
-    open val playersWhoJoined: MutableList<UUID> = mutableListOf(),
 
     open var uuid: UUID? = null
 ) {
-    @delegate:Transient
-    private val components by lazy { ComponentsManager.instance }
-    @Transient lateinit var activePlayers: MutableMap<UUID, EventPlayer>
-    @Transient var disabledNotifications: MutableList<UUID> = mutableListOf()
-    @Transient private var notificationsTask: BukkitTask? = null
-    @Transient private var activityCheckTask: BukkitTask? = null
 
     open fun start() {
         uuid = UUID.randomUUID()
-
-        activePlayers = mutableMapOf()
-        disabledNotifications = mutableListOf()
-
-        playersWhoJoined.clear()
-        clearPlayersQuests()
+        eventUserHandler.setup(this)
 
         startedAt = System.currentTimeMillis()
         endsAt = getEndOfDayMillis(System.currentTimeMillis())
@@ -101,17 +80,11 @@ open class Event(
         }
         spawnQuestNPC()
 
-        runTasks()
-
         eventEntitiesHandler.setup(this)
         regenerativeMaterialsHandler.setup(this)
-
-        pointsHandler.setup(this)
-        pointsHandler.players.clear()
-
     }
     open fun end() {
-        clearPlayersQuests()
+        finish()
 
         portals?.values?.forEach { portal ->
             portal.end(PortalRemovalReason.END)
@@ -120,36 +93,96 @@ open class Event(
         removeNPC()
         removeQuestNPCHologram()
 
-        activityCheckTask?.cancel()
-        notificationsTask?.cancel()
-
         eventEntitiesHandler.stop()
         regenerativeMaterialsHandler.stop()
-        pointsHandler.stop()
-        pointsHandler.players.clear()
-
-        playersWhoJoined.clear()
+        eventUserHandler.end()
     }
+    /*
+    Statistics:
+    All Points Earned
+    Amount of players that participated
+    Amount of islands that participated
+    Mobs Killed
+    Blocks Mined
+    Quests finished
 
-    open fun giveRewards() {
-        val rewardsFirst = listOf<Reward>(
-            MoneyReward(10000.00),
-            ItemReward(listOf(ItemBuilder(Material.GLOWSTONE).build()))
-        )
+     */
 
-        rewardsFirst.forEach {
-            it.sendRewardToUser()
+    open fun finish() {
+        val topPlayers = eventUserHandler.pointsHandler.getTopPlayers().take(3)
+
+        val loreLines = buildList {
+            topPlayers.forEach { (user, data) ->
+
+                val rank = data.getOrNull(0) ?: 0
+                val points = data.getOrNull(1) ?: 0
+                val color = getRankColor(rank)
+
+                add("$color$rank&7. $color${user.name} &8- &7$points Punktów.")
+            }
+        }
+        val topIslandData: Pair<Island, Array<Int>>? = eventUserHandler.pointsHandler.getTopIslands().firstOrNull()
+
+        val topIslandString: String? = topIslandData?.let { (island, data) ->
+            val islandPoints = data.getOrNull(1) ?: 0
+            "&7Najlepsza Wyspa: &f${island.name}&7, łącznie punktów: &e$islandPoints&7!"
+        }
+        val statisticsMessage = buildList {
+            EventStatistic.entries.forEach {
+                val totalSum = eventUserHandler.getTotalSumFor(it)
+                if(totalSum == 0) return@forEach
+
+                val topSum = eventUserHandler.getTopSumFor(it)
+                val topSumName = topSum?.asSkyBlockUser()?.name
+                when(it) {
+                    EventStatistic.MOBS_KILLED -> {
+                        add("&e&lZabitych Potworów&7: &6$totalSum")
+                        if(topSum != null) add("&eNajlepszy Gracz&7: &6${topSumName}, ${topSum.mobsKilled} zabitych potworów.")
+                    }
+                    EventStatistic.BLOCKS_MINED -> {
+                        add("&e&lWykopanych Bloków&7: &6$totalSum")
+                        if(topSum != null) add("&eNajlepszy Gracz&7: &6${topSumName}, ${topSum.blocksMined} wykopanych bloków.")
+                    }
+                    EventStatistic.POINTS_EARNED -> {
+                        add("&e&lZdobytych Punktów&7: &6$totalSum")
+                        if(topSum != null) add("&eNajlepszy Gracz&7: &6${topSumName}, ${topSum.getPoints()} zdobytych punktów.")
+                    }
+                    EventStatistic.QUESTS_FINISHED -> {
+                        add("&e&lUkończonych Zadań&7: &6$totalSum")
+                        if(topSum != null) add("&eNajlepszy Gracz&7: &6${topSumName}, ${topSum.questsFinished.sum()} ukończonych zadań.")
+                    }
+                    EventStatistic.ISLANDS_PARTICIPATED -> add("&cWysp uczestniczących w wydarzeniu: &6$totalSum")
+                    EventStatistic.PLAYERS_PARTICIPATED -> add("&cGraczy uczestniczących w wydarzeniu: &6$totalSum")
+                }
+            }
+        }
+        val finalMessage = buildList {
+            add("&6&lWydarzenie Nether Zakończone!")
+            add("&7-------------------------")
+            if (loreLines.isNotEmpty()) {
+                addAll(loreLines)
+            } else {
+                add("&7Brak graczy w rankingu.")
+            }
+            add("&7-------------------------")
+            topIslandString?.let { add(it) } ?: add("&7Brak danych o najlepszej wyspie.")
+            add("&7-------------------------")
+            if(statisticsMessage.isNotEmpty()) {
+                addAll(statisticsMessage)
+            } else {
+                add("&7Brak statystyk w wydarzeniu")
+            }
+        }
+
+        Bukkit.getOnlinePlayers().forEach { player ->
+            finalMessage.forEach { line ->
+                player.sendColoured(line)
+            }
         }
     }
 
     open fun reload() {
         Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-            disabledNotifications = mutableListOf()
-            activePlayers = mutableMapOf()
-
-            runTasks()
-            checkActivePlayers()
-
             portals?.values?.forEach { portal ->
                 portal.event = this
                 portal.end(PortalRemovalReason.RESTART)
@@ -161,70 +194,17 @@ open class Event(
 
             eventEntitiesHandler.reload(this)
             regenerativeMaterialsHandler.reload(this)
-            pointsHandler.reload(this)
+            eventUserHandler.reload(this)
 
             spawnQuestNPC()
         }, 30)
+        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
+            finish()
+        }, 60)
     }
     open fun startMessage(): List<String> = emptyList()
     open fun joinMessage(): List<String> = emptyList()
-    open fun runTasks() {
-        activityCheckTask = object : BukkitRunnable() {
-            override fun run() {
-                checkActivePlayers()
-            }
-        }.runTaskTimer(components.plugin, 0, 20 * 10) // Check every 10 seconds.
-        notificationsTask = object : BukkitRunnable() {
-            override fun run() {
-                sendNotification()
-            }
-        }.runTaskTimer(components.plugin, 0, 20 * 540) // every 5 minutes 540
-    }
-    private fun sendNotification() {
-        Bukkit.getOnlinePlayers().filter {
-            val user = it.asUser()
-            user != null
-                    && it.world != spawnLocation.world
-                    && user.level >= requiredLevel
-                    && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
-                    && !disabledNotifications.contains(it.uniqueId)
-        }.forEach { player ->
-            if(disabledNotifications.contains(player.uniqueId)) return@forEach
 
-            player.asAudience().sendMessage("event.is.on".translateComponentWithClickEvent(player,
-                "disable_event_notification", "event.is.on.click".eventsTranslation(player), name.lowercase().eventsTranslation(player)))
-        }
-    }
-    private fun clearPlayersQuests() { // Removes the same quests which were finished previously.
-        val availableQuests = quests ?: return
-
-        val usersManager = UsersManager.instance
-        val questUsers = Bukkit.getOnlinePlayers().mapNotNull { usersManager.getUser(it.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) }
-
-        questUsers.forEach { questUser ->
-            val keysToRemove =
-                questUser.finishedQuests.filter { availableQuests.contains(it.key) && it.value.time < startedAt }
-                    .map { it.key }
-
-            keysToRemove.forEach { questUser.finishedQuests.remove(it) }
-
-            val activeQuests = questUser.activeQuests.filter { availableQuests.contains(it.uniqueId) }
-
-            activeQuests.forEach { quest -> questUser.activeQuests.remove(quest) }
-
-        }
-    }
-    open fun teleport(player: Player) {
-        player.teleport(spawnLocation)
-        if(!playersWhoJoined.contains(player.uniqueId)) {
-            player.sendColouredActionBar("joined.event".eventsTranslation(player, name))
-            playersWhoJoined.add(player.uniqueId)
-            if(description.size != 1)
-                description.forEach { player.sendColoured(it) }
-        } else {
-            player.sendColouredActionBar("teleported.event".eventsTranslation(player, name))
-        }
-    }
     open fun addQuest(id: Int) {
         if(quests == null) quests = mutableListOf()
         if(quests!!.contains(id)) return
@@ -243,28 +223,6 @@ open class Event(
         }
 
         quests!!.remove(id)
-    }
-
-    // Activity
-    private fun checkActivePlayers() {
-        val world = spawnLocation.world ?: return
-        val playersToRemove = mutableListOf<UUID>()
-
-        activePlayers.forEach { (uuid, eventPlayer) ->
-            if(eventPlayer.shouldRemove(world)) {
-                playersToRemove.add(uuid)
-                eventPlayer.kick(world)
-            }
-        }
-        playersToRemove.forEach {
-            activePlayers.remove(it)
-        }
-
-        val players: Map<UUID, EventPlayer> = Bukkit.getOnlinePlayers()
-            .filter { it.uniqueId !in activePlayers && it.world == world }
-            .associateBy({ it.uniqueId }, { EventPlayer(it, System.currentTimeMillis()) })
-
-        activePlayers.putAll(players)
     }
 
     fun spawnQuestNPC() {
@@ -410,21 +368,6 @@ open class Event(
         holograms.removeViewer(player)
     }
 
-    fun restartQuestsFor(questUser: QuestUser) {
-        if(quests.isNullOrEmpty()) quests = mutableListOf()
-        if(playersWhoJoined.contains(questUser.uniqueId)) return
-
-        questUser.finishedQuests.filter { quests!!.contains(it.key) }.forEach {
-            questUser.finishedQuests.remove(it.key)
-        }
-        questUser.activeQuests.filter { quests!!.contains(it.uniqueId) }.forEach {
-            questUser.activeQuests.remove(it)
-
-            val user = questUser.uniqueId.asUser() ?: return@forEach
-            Bukkit.getPluginManager().callEvent(UserQuestCancelEvent(user, questUser, it))
-        }
-    }
-
     // Regions
     fun isInSpawnRegion(location: Location): Boolean {
         if(spawnRegion == null) return false
@@ -449,10 +392,9 @@ open class Event(
         spawnRegion,
         questNPCLocation,
         quests,
-        playersWhoJoined,
         eventEntitiesHandler.cuboids,
         regenerativeMaterialsHandler.regenerativeMaterials,
-        pointsHandler.players,
+        eventUserHandler.users.mapValuesTo(ConcurrentHashMap()) { it.value.toData() },
         uuid
     )
 

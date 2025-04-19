@@ -10,6 +10,7 @@ import com.justxraf.skyblockevents.events.portals.EventPortal
 import com.justxraf.skyblockevents.util.getLookingDirection
 import org.bukkit.Location
 import org.bukkit.entity.Player
+import java.util.concurrent.ConcurrentHashMap
 
 object EventAdminSetPortalSubCommand {
 
@@ -63,11 +64,11 @@ object EventAdminSetPortalSubCommand {
 
         val portal = EventPortal(type, player.getLookingDirection(), location, sessionEvent.type)
 
-        if (sessionEvent.portals.isNullOrEmpty()) sessionEvent.portals = mutableMapOf()
+        if (sessionEvent.portals.isNullOrEmpty()) sessionEvent.portals = ConcurrentHashMap()
         sessionEvent.portals?.set(type, portal)
 
         if (currentEvent == null) return
-        if (currentEvent.portals.isNullOrEmpty()) currentEvent.portals = mutableMapOf()
+        if (currentEvent.portals.isNullOrEmpty()) currentEvent.portals = ConcurrentHashMap()
 
         currentEvent.portals?.set(type, portal)
         portal.setup()

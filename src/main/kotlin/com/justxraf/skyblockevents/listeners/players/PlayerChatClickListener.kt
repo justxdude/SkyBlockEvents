@@ -17,11 +17,11 @@ class PlayerChatClickListener : Listener {
         val currentEvent = eventsManager.currentEvent
         val player = event.player
 
-        if(currentEvent.disabledNotifications.contains(player.uniqueId)) {
+        if(currentEvent.eventUserHandler.disabledNotifications.contains(player.uniqueId)) {
             player.sendColoured("notifications.already.disabled".eventsTranslation(player))
             return
         }
-        currentEvent.disabledNotifications.add(player.uniqueId)
+        currentEvent.eventUserHandler.disabledNotifications.add(player.uniqueId)
         player.sendColoured("disabled.notifications.for.event".eventsTranslation(player, currentEvent.name.lowercase().eventsTranslation(player)))
     }
 }
