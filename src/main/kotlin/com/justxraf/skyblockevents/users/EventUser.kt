@@ -2,10 +2,14 @@ package com.justxraf.skyblockevents.users
 
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxdude.skyblockapi.user.User
+import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserManager
 import com.justxraf.networkapi.util.sendColoured
+import com.justxraf.skyblockevents.api.SkyBlockEventPointsGainEvent
+import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.events.data.user.EventUserData
 import com.justxraf.skyblockevents.util.eventsTranslation
+import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.entity.Player
 import java.util.UUID
@@ -49,8 +53,11 @@ class EventUser(
             this.player = null
         }
     }
-    fun addPoints(int: Int) {
-        points = points + int
+    fun addPoints(amount: Int) {
+        val currentEvent = EventsManager.instance.currentEvent
+        points += amount
+
+        Bukkit.getPluginManager().callEvent(SkyBlockEventPointsGainEvent(uniqueId.asUser()!!, amount, currentEvent.eventType))
     }
     fun getPoints() = points
     fun toData(): EventUserData = EventUserData(uniqueId, points, mobsKilled, blocksMined, questsFinished, isActive, lastCache)
