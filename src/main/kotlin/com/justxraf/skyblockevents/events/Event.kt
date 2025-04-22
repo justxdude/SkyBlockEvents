@@ -3,11 +3,14 @@ package com.justxraf.skyblockevents.events
 import com.justxdude.islandcore.islands.Island
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.networkapi.util.sendColouredActionBar
+import com.justxraf.questscore.quests.quest.FinishedQuest
 import com.justxraf.questscore.users.QuestUserLoadReason
 import com.justxraf.questscore.users.UsersManager
 import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
+import com.justxraf.skyblockevents.events.data.FinishedEvent
+import com.justxraf.skyblockevents.events.data.user.EventUserData
 import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
 import com.justxraf.skyblockevents.events.portals.EventPortal
 import com.justxraf.skyblockevents.events.portals.EventPortalType
@@ -85,6 +88,7 @@ open class Event(
     }
     open fun end() {
         finish()
+        processFinishedEvent()
 
         portals?.values?.forEach { portal ->
             portal.end(PortalRemovalReason.END)
@@ -107,7 +111,14 @@ open class Event(
     Quests finished
 
      */
+    fun processFinishedEvent() {
+        val eventsManager = EventsManager.instance
+        val finishedQuest = FinishedEvent(eventsManager.finishedEvents.maxOfOrNull { it.key } ?: 1,
+            uuid ?: UUID.randomUUID(), eventUserHandler.pointsHandler.islandsLeaderboard,
+            eventUserHandler.users.values.map { it.toData() }.associateBy { it.uniqueId }, startedAt, System.currentTimeMillis())
 
+        eventsManager.finishedEvents.putIfAbsent(finishedQuest.id, finishedQuest)
+    }
     open fun finish() {
         val topPlayers = eventUserHandler.pointsHandler.getTopPlayers().take(3)
 

@@ -11,9 +11,9 @@ import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
 import com.justxraf.skyblockevents.users.points.PointsHandler
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
 import com.justxraf.skyblockevents.users.EventUserHandler
+import com.justxraf.skyblockevents.util.DatabaseUtil.saveToDatabase
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.mongodb.client.model.Filters
-import com.mongodb.client.model.UpdateOneModel
 import com.mongodb.client.model.UpdateOptions
 import kotlinx.coroutines.Runnable
 import org.bson.Document
@@ -31,19 +31,21 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     lateinit var currentEvent: Event
     var events: MutableMap<Int, EventData> = mutableMapOf()
     val editSession = mutableMapOf<UUID, EventData>()
-    val finishedEvents: MutableMap<UUID, FinishedEvent> = mutableMapOf()
+    var finishedEvents: MutableMap<Int, FinishedEvent> = mutableMapOf()
 
     //db
-    // TODO add a new collection for finished events
     private val client = SkyblockAPI.instance.database.client
     private val database = client.getDatabase("skyblockevents")
     private val collection = database.getCollection("eventsmanager")
     private val eventsCollection = database.getCollection("events")
+    private val finishedEventsCollection = database.getCollection("finished_events")
     private val gson = SkyblockAPI.instance.database.gson
 
     private fun setup() {
         events = mutableMapOf()
         loadEvents()
+        finishedEvents = mutableMapOf()
+        loadFinishedEvents()
 
         currentEvent = loadCurrentEvent()?.fromData() ?: generateNewEvent()
 
@@ -70,8 +72,15 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         }, 0L, 20)
 
         Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
-            saveEvents()
+            events.saveToDatabase(eventsCollection)
+            finishedEvents.saveToDatabase(finishedEventsCollection)
         }, 0L, 20 * 20)
+    }
+    fun processFinishedEvent(finishedEvent: FinishedEvent) {
+        // Send information about points gained overall
+        // send information about most points gained
+        // Compare it to the last event
+        // Everything should be posted on discord do it's outside of this plugin.
     }
     private val timeMessages = mapOf(
         1L to "second",
@@ -145,6 +154,24 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         })
     }
 
+    private fun loadFinishedEvents() {
+        supplyAsync {
+            try {
+                val documents = finishedEventsCollection.find().toList()
+                documents.forEach { document ->
+                    val eventJson = gson.toJson(document)
+                    val finishedEvent = gson.fromJson(eventJson, FinishedEvent::class.java)
+
+                    finishedEvents[finishedEvent.id] = finishedEvent
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }.exceptionally { ex ->
+            println("Exception in async task: ${ex.message}")
+            ex.printStackTrace()
+        }
+    }
     private fun loadEvents() {
         supplyAsync {
             try {
@@ -180,57 +207,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             null
         }
     }
-
-    private fun saveEvents() {
-        if (events.isEmpty()) return
-
-        supplyAsync {
-            val bulkWriteRequests = events.map { it.key to it.value }.map { (id, event) ->
-                val json = gson.toJson(event)
-                val document = Document.parse(json)
-                val filter = Document("_id", id)
-                UpdateOneModel<Document>(filter, Document("\$set", document), UpdateOptions().upsert(true))
-            }
-            eventsCollection.bulkWrite(bulkWriteRequests)
-        }.exceptionally { ex ->
-            println("Exception in async task: ${ex.message}")
-            ex.printStackTrace()
-            null
-        }
-    }
-
     private fun generateNewEvent(): Event {
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-        println("Generating new event!")
-
         if (events.isEmpty()) return Event(
             "",
             0,
