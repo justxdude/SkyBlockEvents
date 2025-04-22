@@ -58,6 +58,8 @@ class EventUser(
         points += amount
 
         Bukkit.getPluginManager().callEvent(SkyBlockEventPointsGainEvent(uniqueId.asUser()!!, amount, currentEvent.eventType))
+
+
     }
     fun getPoints() = points
     fun toData(): EventUserData = EventUserData(uniqueId, points, mobsKilled, blocksMined, questsFinished, isActive, lastCache)

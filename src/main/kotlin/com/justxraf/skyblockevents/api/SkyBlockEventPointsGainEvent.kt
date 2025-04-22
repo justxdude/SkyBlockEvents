@@ -9,6 +9,7 @@ class SkyBlockEventPointsGainEvent (
     val user: User,
     val amount: Int,
     val eventType: EventType
+
 ) : Event() {
 
     companion object {
