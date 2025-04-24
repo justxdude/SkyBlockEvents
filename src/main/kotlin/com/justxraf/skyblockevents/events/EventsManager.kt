@@ -4,9 +4,11 @@ import com.justxraf.networkapi.util.sendColoured
 import com.justxdude.skyblockapi.SkyblockAPI
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxdude.skyblockapi.user.UserSettingsFlag
+import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.events.data.FinishedEvent
+import com.justxraf.skyblockevents.events.data.active.ActiveEventData
 import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
 import com.justxraf.skyblockevents.users.points.PointsHandler
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
@@ -16,16 +18,12 @@ import com.justxraf.skyblockevents.util.eventsTranslation
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.UpdateOptions
 import kotlinx.coroutines.Runnable
+import net.kyori.adventure.text.Component
 import org.bson.Document
 import org.bukkit.Bukkit
 import org.bukkit.Location
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.temporal.ChronoField
 import java.util.*
 import java.util.concurrent.CompletableFuture.supplyAsync
-import java.util.concurrent.ConcurrentHashMap
 
 class EventsManager(private val componentsManager: ComponentsManager) {
     lateinit var currentEvent: Event
@@ -41,47 +39,51 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     private val finishedEventsCollection = database.getCollection("finished_events")
     private val gson = SkyblockAPI.instance.database.gson
 
-    private fun setup() {
-        events = mutableMapOf()
-        loadEvents()
-        finishedEvents = mutableMapOf()
-        loadFinishedEvents()
+    private fun init() {
+        events = loadEventsData() ?: mutableMapOf()
+        finishedEvents = loadFinishedEvents() ?: mutableMapOf()
 
-        currentEvent = loadCurrentEvent()?.fromData() ?: generateNewEvent()
+        currentEvent = loadCurrentEvent() ?: generateNewEvent()
 
         if(shouldFinish()) {
-            currentEvent = generateNewEvent()
-            saveCurrentEvent()
-        } else {
-            currentEvent.reload()
-        }
+            currentEvent.finish()
 
-        Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
-            saveCurrentEvent()
-        }, 0L, 20 * 5)
-
-        Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
-            if (shouldFinish()) {
-                currentEvent.end()
-
+            Bukkit.broadcast(Component.text("New event starts in 30 seconds!"))
+            Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
                 currentEvent = generateNewEvent()
-                saveCurrentEvent()
-                return@Runnable
-            }
-            eventTimeCheck()
-        }, 0L, 20)
+            }, 20 * 30) // Run after 30 seconds
+        }
+        else currentEvent.reload()
 
-        Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
-            events.saveToDatabase(eventsCollection)
-            finishedEvents.saveToDatabase(finishedEventsCollection)
-        }, 0L, 20 * 20)
+        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
+            println("Running later logic in EventsManager...")
+
+            Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
+                saveCurrentEvent()
+            }, 0L, 20 * 5)
+
+            Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
+                if (shouldFinish()) {
+                    currentEvent.end()
+
+                    currentEvent = generateNewEvent()
+                    saveCurrentEvent()
+                } else eventTimeCheck()
+            }, 0L, 20)
+
+            Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
+                events.saveToDatabase(eventsCollection)
+                finishedEvents.saveToDatabase(finishedEventsCollection)
+            }, 0L, 20 * 20)
+        }, 20 * 10)
+
     }
-    fun processFinishedEvent(finishedEvent: FinishedEvent) {
-        // Send information about points gained overall
-        // send information about most points gained
-        // Compare it to the last event
-        // Everything should be posted on discord do it's outside of this plugin.
-    }
+//    fun processFinishedEvent(finishedEvent: FinishedEvent) {
+//        // Send information about points gained overall
+//        // send information about most points gained
+//        // Compare it to the last event
+//        // Everything should be posted on discord do it's outside of this plugin.
+//    }
     private val timeMessages = mapOf(
         1L to "second",
         2L to "seconds",
@@ -154,41 +156,34 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         })
     }
 
-    private fun loadFinishedEvents() {
+    private fun loadFinishedEvents(): MutableMap<Int, FinishedEvent>? =
         supplyAsync {
             try {
-                val documents = finishedEventsCollection.find().toList()
-                documents.forEach { document ->
-                    val eventJson = gson.toJson(document)
-                    val finishedEvent = gson.fromJson(eventJson, FinishedEvent::class.java)
-
-                    finishedEvents[finishedEvent.id] = finishedEvent
-                }
+                return@supplyAsync finishedEventsCollection.find().toList().map {
+                    gson.fromJson(gson.toJson(it), FinishedEvent::class.java)
+                }.associateByTo(mutableMapOf()) { it.id }
             } catch (e: Exception) {
                 e.printStackTrace()
-            }
-        }.exceptionally { ex ->
-            println("Exception in async task: ${ex.message}")
-            ex.printStackTrace()
-        }
-    }
-    private fun loadEvents() {
-        supplyAsync {
-            try {
-                val documents = eventsCollection.find().toList()
-                documents.forEach { document ->
-                    val eventJson = gson.toJson(document)
-                    val event = gson.fromJson(eventJson, EventData::class.java)
 
-                    events[event.uniqueId] = event
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+                return@supplyAsync null
             }
         }.exceptionally { ex ->
-            println("Exception in async task: ${ex.message}")
+            println("Exception while loading finished events: ${ex.message}")
             ex.printStackTrace()
-        }
+
+            return@exceptionally null
+        }.join()
+
+    private fun loadEventsData(): MutableMap<Int, EventData>? {
+        return supplyAsync {
+            return@supplyAsync eventsCollection.find().toList().map { gson.fromJson(gson.toJson(it), EventData::class.java) }
+                .associateByTo(mutableMapOf()) { it.uniqueId }
+        }.exceptionally { ex ->
+            println("Exception while loading events data: ${ex.message}")
+            ex.printStackTrace()
+
+            return@exceptionally null
+        }.join()
     }
 
     fun saveEvent(eventData: EventData) {
@@ -208,18 +203,22 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         }
     }
     private fun generateNewEvent(): Event {
-        if (events.isEmpty()) return Event(
-            "",
-            0,
-            EventType.FISHING,
-            0,
-            0,
-            mutableListOf(""),
-            Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0),
-            RegenerativeMaterialsHandler(),
-            EventEntitiesHandler(),
-            EventUserHandler(PointsHandler(), ConcurrentHashMap())
-        ) // As a debug if there are no events in the database
+        if(events.isEmpty()) {
+            val fakeLocation = Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0)
+
+            return Event(
+                "",
+                0,
+                EventType.FISHING,
+                0L,
+                0L,
+                mutableListOf(),
+                fakeLocation,
+                RegenerativeMaterialsHandler(mutableListOf()),
+                EventEntitiesHandler(),
+                EventUserHandler(PointsHandler()),
+                )
+        }
 
         val event = events.values.random().fromData()
 
@@ -234,42 +233,47 @@ class EventsManager(private val componentsManager: ComponentsManager) {
 
     fun saveCurrentEvent() {
         supplyAsync {
-            val dataBson = Document.parse(gson.toJson(currentEvent?.toData()))
+            val dataBson = Document.parse(gson.toJson(currentEvent.toData()))
             val update = Document("\$set", dataBson)
 
+            // Delete so there's no unnecessary values if there are any
+            collection.deleteOne(Filters.eq("_id", "currentEvent"))
+            // save
             collection.updateOne(Filters.eq("_id", "currentEvent"), update, UpdateOptions().upsert(true))
         }.exceptionally { ex ->
-            println("Exception in async task: ${ex.message}")
+            println("Exception while saving current event in EventsManager: ${ex.message}")
             ex.printStackTrace()
             null
         }
     }
 
-    private fun loadCurrentEvent(): EventData? {
-        try {
-            return collection.find(Filters.eq("_id", "currentEvent")).firstOrNull()
-                ?.let { gson.fromJson(it.toJson(), EventData::class.java) }
+    private fun loadCurrentEvent(): Event? {
+        return try {
+            collection.find(Filters.eq("_id", "currentEvent")).firstOrNull()
+                ?.let { gson.fromJson(it.toJson(), ActiveEventData::class.java) }
         } catch (e: Exception) {
             e.printStackTrace()
-            return null
+            null
         }
+            ?.toEvent()
     }
 
-    private fun shouldFinish(): Boolean {
-        val zone = ZoneId.of("Europe/Berlin")
+    private fun shouldFinish(): Boolean = System.currentTimeMillis() - currentEvent.endsAt < 0
 
-        val zdtLastUpdate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentEvent.startedAt), zone)
-        val zdtNow = ZonedDateTime.now(zone)
 
-        return zdtLastUpdate.get(ChronoField.DAY_OF_YEAR) != zdtNow.get(ChronoField.DAY_OF_YEAR) ||
-                zdtLastUpdate.year != zdtNow.year
-    }
+//        val zone = ZoneId.of("Europe/Berlin")
+//
+//        val zdtLastUpdate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(currentEvent.startedAt), zone)
+//        val zdtNow = ZonedDateTime.now(zone)
+//
+//        return zdtLastUpdate.get(ChronoField.DAY_OF_YEAR) != zdtNow.get(ChronoField.DAY_OF_YEAR) ||
+//                zdtLastUpdate.year != zdtNow.year
 
     companion object {
         lateinit var instance: EventsManager
         fun initialize(componentsManager: ComponentsManager): EventsManager {
             instance = EventsManager(componentsManager)
-            instance.setup()
+            instance.init()
 
             return instance
         }

@@ -14,6 +14,7 @@ import com.justxraf.skyblockevents.users.EventUserHandler
 import com.justxraf.skyblockevents.util.isInCuboid
 import org.bukkit.Location
 import org.bukkit.Material
+import java.time.*
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -22,13 +23,9 @@ data class EventData(
     var uniqueId: Int,
 
     var type: EventType,
-    var startedAt: Long,
-
-    var endsAt: Long,
-
     var description: MutableList<String>,
-    var spawnLocation: Location,
 
+    var spawnLocation: Location,
     var requiredLevel: Int = 0,
 
     var portals: ConcurrentHashMap<EventPortalType, EventPortal>? = null,
@@ -42,35 +39,33 @@ data class EventData(
 
     var regenerativeMaterials: MutableList<RegenerativeMaterial>? = null,
 
-    // Points
-    var eventUsers: ConcurrentHashMap<UUID, EventUserData>? = null,
-    val uuid: UUID? = null,
-
     ) {
+
+    // This function creates a new event for CurrentEvent.
     fun fromData(): Event {
         val regenerativeBlocksManager = RegenerativeMaterialsHandler(regenerativeMaterials ?: mutableListOf())
         val eventEntitiesHandler = EventEntitiesHandler(eventEntityCuboids ?: ConcurrentHashMap())
 
-        val users = eventUsers?.mapValuesTo(ConcurrentHashMap()) { it.value.toEventUser() }
-        val eventUserHandler = EventUserHandler(PointsHandler(), users ?: ConcurrentHashMap())
+        val eventUserHandler = EventUserHandler(PointsHandler(), ConcurrentHashMap())
+
+        val zone = ZoneId.of("Europe/Berlin")
+        val today = LocalDate.now(zone)
+        val endOfDay = LocalTime.of(23, 59, 59)
+        val zonedTime = ZonedDateTime.of(today, endOfDay, zone)
+
+        val endsAt = zonedTime.toInstant().toEpochMilli()
 
         val event = Event(
             name,
             uniqueId,
             type,
-            startedAt,
+            System.currentTimeMillis(),
             endsAt,
             description,
             spawnLocation,
             regenerativeBlocksManager,
             eventEntitiesHandler,
-            eventUserHandler,
-            requiredLevel,
-            portals,
-            spawnRegion,
-            questNPCLocation,
-            quests,
-            uuid
+            eventUserHandler
         )
         val questsCopy = quests?.toList()
 

@@ -10,6 +10,7 @@ import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.events.data.FinishedEvent
+import com.justxraf.skyblockevents.events.data.active.ActiveEventData
 import com.justxraf.skyblockevents.events.data.user.EventUserData
 import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
 import com.justxraf.skyblockevents.events.portals.EventPortal
@@ -36,6 +37,7 @@ import kotlinx.coroutines.Runnable
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
+import java.awt.ActiveEvent
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.map
@@ -49,30 +51,26 @@ open class Event(
     open var startedAt: Long,
 
     open var endsAt: Long,
-
     open var description: MutableList<String>,
+
     open var spawnLocation: Location,
-
     open var regenerativeMaterialsHandler: RegenerativeMaterialsHandler,
-    open var eventEntitiesHandler: EventEntitiesHandler,
 
+    open var eventEntitiesHandler: EventEntitiesHandler,
     open var eventUserHandler: EventUserHandler,
 
-    var requiredLevel: Int = 0,
+    open var uuid: UUID = UUID.randomUUID(),
 
+    var requiredLevel: Int = 0,
     var portals: ConcurrentHashMap<EventPortalType, EventPortal>? = null,
 
     open var spawnRegion: Pair<Location, Location>? = null,
-
     open var questNPCLocation: Location? = null,
 
     open var quests: MutableList<Int>? = null,
-
-    open var uuid: UUID? = null
 ) {
 
     open fun start() {
-        uuid = UUID.randomUUID()
         eventUserHandler.setup(this)
 
         startedAt = System.currentTimeMillis()
@@ -390,21 +388,11 @@ open class Event(
         }
     fun normalPortalLocation(): Location? = portals?.values?.firstOrNull { it.portalType == EventPortalType.NORMAL }?.centre
 
-    fun toData() = EventData(
-        name,
+    fun toData() = ActiveEventData(
         uniqueId,
         eventType,
         startedAt,
         endsAt,
-        description,
-        spawnLocation,
-        requiredLevel,
-        portals,
-        spawnRegion,
-        questNPCLocation,
-        quests,
-        eventEntitiesHandler.cuboids,
-        regenerativeMaterialsHandler.regenerativeMaterials,
         eventUserHandler.users.mapValuesTo(ConcurrentHashMap()) { it.value.toData() },
         uuid
     )

@@ -76,14 +76,14 @@ class EventPortal(
         stopTask()
         remove(removalReason)
     }
-    fun runTask() {
+    private fun runTask() {
         task = object : BukkitRunnable() {
             override fun run() {
                 reloadHologram()
             }
         }.runTaskTimer(SkyBlockEvents.instance, 0, 200)
     }
-    fun stopTask() {
+    private fun stopTask() {
         task?.cancel()
     }
     private fun normalHologramLore(locale: String, hasRequiredLevel: Boolean) = listOf(
@@ -154,8 +154,8 @@ class EventPortal(
                 hologramData.visibility = Visibility.MANUAL
 
                 if(portalType == EventPortalType.NORMAL) {
-                    val hologram = hologramManager.getHologram("${event.uniqueId}_${portalType.name.lowercase()}_portal_hologram_requirement_$locale").getOrNull()
-                    if(hologram != null) {
+                    val requirementHologram = hologramManager.getHologram("${event.uniqueId}_${portalType.name.lowercase()}_portal_hologram_requirement_$locale").getOrNull()
+                    if(requirementHologram != null) {
                         return@forEach
                     }
 
@@ -216,7 +216,7 @@ class EventPortal(
             it.setBlocks(region.faces, airBlock)
         }
     }
-    fun place() {
+    private fun place() {
         try {
             cuboid = pasteSchematic()
 
@@ -228,7 +228,7 @@ class EventPortal(
         }
     }
 
-    fun pasteSchematic(): Pair<Location, Location>? {
+    private fun pasteSchematic(): Pair<Location, Location>? {
         val clipboard = loadSchematic()
 
         val region = clipboard?.region ?: return null
@@ -238,12 +238,12 @@ class EventPortal(
 
         val worldEdit = WorldEdit.getInstance()
         val session = worldEdit.newEditSessionBuilder().world(BukkitWorld(centre.world)).build()
-        try {
+        session.use { s ->
             val placementPosition = BlockVector3.at(centre.x, centre.y, centre.z)
 
             // Paste the schematic
             val operation = ClipboardHolder(clipboard)
-                .createPaste(session)
+                .createPaste(s)
                 .to(placementPosition)
                 .ignoreAirBlocks(false)
                 .build()
@@ -251,8 +251,6 @@ class EventPortal(
             Operations.complete(operation)
 
             return Pair(pos1, pos2)
-        } finally {
-            session.close()
         }
     }
 
@@ -299,7 +297,7 @@ class EventPortal(
                 z in (min(z1, z2) - tolerance)..(max(z1, z2) + tolerance)
     }
     fun showHologram(player: Player, user: User, hologramManager: HologramManager, skyBlockEventsResourcesManager: SkyBlockEventsResourcesManager) {
-        val locale = if(!skyBlockEventsResourcesManager.languages.contains(player.locale)) "en_us" else player.locale
+        val locale = if(!skyBlockEventsResourcesManager.languages.contains(player.locale)) "en_us" else player.locale()
 
         val hologramName = if(user.level > event.requiredLevel) "${event.uniqueId}_${portalType.name.lowercase()}_portal_hologram_$locale"
                             else "${event.uniqueId}_${portalType.name.lowercase()}_portal_hologram_requirement_$locale"
@@ -313,14 +311,17 @@ class EventPortal(
         }
 
     }
-    fun removeDistantViewerFromHologram(player: Player, user: User, skyBlockEventsResourcesManager: SkyBlockEventsResourcesManager, hologramManager: HologramManager) {
+    fun removeDistantViewerFromHologram(player: Player, user: User, 
+                                        skyBlockEventsResourcesManager: SkyBlockEventsResourcesManager, 
+                                        hologramManager: HologramManager) {
         val hologramNames = mutableListOf<String>()
         val languages = skyBlockEventsResourcesManager.languages
 
         val playerLocale = if(languages.contains(player.locale)) player.locale else "en_us"
 
         languages.forEach { locale ->
-            if(locale == playerLocale) { // Player's level might change,
+            if(locale == playerLocale) {
+                // Player's level might change,
                 // so it's necessary to remove a hologram
                 // to avoid duplicates.
                 if(user.level < event.requiredLevel) {
