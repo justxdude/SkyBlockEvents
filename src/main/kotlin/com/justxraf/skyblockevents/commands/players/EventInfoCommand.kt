@@ -59,9 +59,11 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
 
         message += listOf(
             "&8- &7${if(joined == 0) "nobody.joined".eventsTranslation(player) else if(joined == 1) "joined.one.player".eventsTranslation(player) else "joined.in.total".eventsTranslation(player, joined.toString())}",
-            "&8- &7${if(users == 0) "event.no.active.players".eventsTranslation(player)
-                else if(users == 1) "active.one.player".eventsTranslation(player)
-                    else "active.in.total".eventsTranslation(player, users.toString())}",
+            "&8- &7${when(users) {
+                1 -> "active.one.player".eventsTranslation(player)
+                0 -> "event.no.active.players".eventsTranslation(player)
+                else -> "active.in.total".eventsTranslation(player, users.toString())}
+            }",
             "ends.in".eventsTranslation(player, currentEvent.endsAt.toDate()),
             "&c",
             if(user.level < currentEvent.requiredLevel) "have.to.achieve.level.to.unlock" else "join.at"
@@ -75,6 +77,10 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
             if(i == 6) player.asAudience().sendMessage {
                 "check.leaderboard".translateComponentWithClickEvent(player, "event ${"leaderboard".eventsTranslation(player)}",
                 "click.to.run.command".eventsTranslation(player)) }
+            if(i == 7) player.asAudience().sendMessage(
+                "check.rewards".translateComponentWithClickEvent(player, "event rewards",
+                    "click.to.run.command".eventsTranslation(player))
+            )
             i++
         }
     }
