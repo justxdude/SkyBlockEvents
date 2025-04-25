@@ -49,7 +49,8 @@ class PointsHandler() {
         islandChecker?.cancel()
     }
     private fun islandsCheck() {
-        val users = eventUserHandler.users.mapNotNull { (uuid, _) -> uuid.asUser() }
+        val users = eventUserHandler.users.filter { it.value.getPoints() != 0 }.mapNotNull { (uuid, _) -> uuid.asUser() }
+        if(users.isEmpty()) return
 
         val newKeys = users.filter { it.islandId != 0 }.map { it.islandId }.distinct()
 
@@ -65,7 +66,9 @@ class PointsHandler() {
     private fun updateLeaderboard() {
         lastLeaderboardUpdate = System.currentTimeMillis()
 
-        playersLeaderboard = eventUserHandler.users.map { Pair(it.value.uniqueId, it.value.getPoints()) }.sortedByDescending { it.second }
+        playersLeaderboard = eventUserHandler.users
+            .filter { it.value.getPoints() != 0 }.map { Pair(it.value.uniqueId, it.value.getPoints()) }
+            .sortedByDescending { it.second }
         islandsLeaderboard = islands.toList().sortedByDescending { it.second }
     }
     fun getIslandPosition(id: Int): Int
