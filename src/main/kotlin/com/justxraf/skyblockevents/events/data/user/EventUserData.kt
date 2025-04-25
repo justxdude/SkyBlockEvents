@@ -5,15 +5,16 @@ import java.util.UUID
 
 data class EventUserData(
     val uniqueId: UUID,
-    var points: Int,
+    val points: Int,
 
-    var mobsKilled: Int,
-    var blocksMined: Int,
+    val mobsKilled: Int,
+    val blocksMined: Int,
+    val deaths: Int,
 
-    var questsFinished: MutableList<Int>,
-    var isActive: Boolean,
+    val questsFinished: MutableList<Int>,
+    val isActive: Boolean,
 
-    var lastCache: Long,
+    val lastCache: Long,
 ) {
-    fun toEventUser(): EventUser = EventUser(uniqueId, points, mobsKilled, blocksMined, questsFinished, isActive, lastCache)
+    fun toEventUser(): EventUser = EventUser(uniqueId, points, mobsKilled, blocksMined, deaths, questsFinished, isActive, lastCache)
 }

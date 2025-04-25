@@ -29,6 +29,7 @@ class EventUser(
 
     var mobsKilled: Int = 0,
     var blocksMined: Int = 0,
+    var deaths: Int = 0,
 
     var questsFinished: MutableList<Int> = mutableListOf(),
     var isActive: Boolean = true,
@@ -62,5 +63,5 @@ class EventUser(
 
     }
     fun getPoints() = points
-    fun toData(): EventUserData = EventUserData(uniqueId, points, mobsKilled, blocksMined, questsFinished, isActive, lastCache)
+    fun toData(): EventUserData = EventUserData(uniqueId, points, mobsKilled, blocksMined, deaths, questsFinished, isActive, lastCache)
 }

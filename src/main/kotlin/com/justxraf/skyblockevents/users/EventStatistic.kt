@@ -5,6 +5,7 @@ enum class EventStatistic {
     BLOCKS_MINED,
     POINTS_EARNED,
     QUESTS_FINISHED,
+    DEATHS,
     ISLANDS_PARTICIPATED,
     PLAYERS_PARTICIPATED,
 }

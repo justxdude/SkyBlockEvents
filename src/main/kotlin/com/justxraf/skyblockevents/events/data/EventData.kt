@@ -32,11 +32,9 @@ data class EventData(
     var spawnRegion: Pair<Location, Location>? = null,
 
     var questNPCLocation: Location? = null,
-
     var quests: MutableList<Int>? = null,
 
     var eventEntityCuboids: ConcurrentHashMap<Int, EventEntityCuboid>? = null,
-
     var regenerativeMaterials: MutableList<RegenerativeMaterial>? = null,
 
     ) {

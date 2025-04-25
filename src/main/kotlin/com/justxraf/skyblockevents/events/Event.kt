@@ -70,6 +70,27 @@ open class Event(
     open var quests: MutableList<Int>? = null,
 ) {
 
+    open fun reload() {
+        end()
+        start()
+
+//        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
+//            portals?.values?.forEach { portal ->
+//                portal.event = this
+//                portal.end(PortalRemovalReason.RESTART)
+//
+//                portal.setup()
+//            }
+//
+//            removeQuestNPCHologram()
+//
+//            eventEntitiesHandler.reload(this)
+//            regenerativeMaterialsHandler.reload(this)
+//            eventUserHandler.reload(this)
+//
+//            spawnQuestNPC()
+//        }, 30)
+    }
     open fun start() {
         eventUserHandler.setup(this)
 
@@ -83,6 +104,10 @@ open class Event(
 
         eventEntitiesHandler.setup(this)
         regenerativeMaterialsHandler.setup(this)
+
+        Bukkit.getOnlinePlayers().forEach {
+            it.sendColoured("New event started...")
+        }
     }
     open fun end() {
         finish()
@@ -160,6 +185,10 @@ open class Event(
                         add("&e&lUkończonych Zadań&7: &6$totalSum")
                         if(topSum != null) add("&eNajlepszy Gracz&7: &6${topSumName}, ${topSum.questsFinished.sum()} ukończonych zadań.")
                     }
+                    EventStatistic.DEATHS -> {
+                        add("&e&lŚmierci&7: &6$totalSum")
+                        if(topSum != null) add("&7Najwięcej razy umarł(a) &6$topSumName (${topSum.deaths} razy...)")
+                    }
                     EventStatistic.ISLANDS_PARTICIPATED -> add("&cWysp uczestniczących w wydarzeniu: &6$totalSum")
                     EventStatistic.PLAYERS_PARTICIPATED -> add("&cGraczy uczestniczących w wydarzeniu: &6$totalSum")
                 }
@@ -190,27 +219,6 @@ open class Event(
         }
     }
 
-    open fun reload() {
-        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-            portals?.values?.forEach { portal ->
-                portal.event = this
-                portal.end(PortalRemovalReason.RESTART)
-
-                portal.setup()
-            }
-
-            removeQuestNPCHologram()
-
-            eventEntitiesHandler.reload(this)
-            regenerativeMaterialsHandler.reload(this)
-            eventUserHandler.reload(this)
-
-            spawnQuestNPC()
-        }, 30)
-        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-            finish()
-        }, 60)
-    }
     open fun startMessage(): List<String> = emptyList()
     open fun joinMessage(): List<String> = emptyList()
 

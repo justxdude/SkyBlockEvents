@@ -43,21 +43,16 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         events = loadEventsData() ?: mutableMapOf()
         finishedEvents = loadFinishedEvents() ?: mutableMapOf()
 
-        currentEvent = loadCurrentEvent() ?: generateNewEvent()
+        val existingEvent = loadCurrentEvent()
+        if(existingEvent == null) generateNewEvent() else currentEvent = existingEvent
 
         if(shouldFinish()) {
             currentEvent.finish()
-
-            Bukkit.broadcast(Component.text("New event starts in 30 seconds!"))
-            Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-                currentEvent = generateNewEvent()
-            }, 20 * 30) // Run after 30 seconds
+            generateNewEvent()
         }
         else currentEvent.reload()
 
         Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-            println("Running later logic in EventsManager...")
-
             Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
                 saveCurrentEvent()
             }, 0L, 20 * 5)
@@ -66,8 +61,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
                 if (shouldFinish()) {
                     currentEvent.end()
 
-                    currentEvent = generateNewEvent()
-                    saveCurrentEvent()
+                    generateNewEvent()
                 } else eventTimeCheck()
             }, 0L, 20)
 
@@ -202,34 +196,31 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             null
         }
     }
-    private fun generateNewEvent(): Event {
-        if(events.isEmpty()) {
-            val fakeLocation = Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0)
+    private fun generateNewEvent() {
+        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
+            if (events.isEmpty()) currentEvent = getFakeEvent()
+            val event = events.values.random().fromData()
 
-            return Event(
-                "",
-                0,
-                EventType.FISHING,
-                0L,
-                0L,
-                mutableListOf(),
-                fakeLocation,
-                RegenerativeMaterialsHandler(mutableListOf()),
-                EventEntitiesHandler(),
-                EventUserHandler(PointsHandler()),
-                )
-        }
+            event.startedAt = System.currentTimeMillis()
+            event.start()
 
-        val event = events.values.random().fromData()
-
-        event.startedAt = System.currentTimeMillis()
-        event.start()
-
-        currentEvent = event
-        saveCurrentEvent()
-
-        return event
+            currentEvent = event
+            saveCurrentEvent()
+        }, 20 * 30)
     }
+
+    private fun getFakeEvent(): Event = Event(
+        "",
+        0,
+        EventType.FISHING,
+        0L,
+        0L,
+        mutableListOf(),
+        Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0),
+        RegenerativeMaterialsHandler(mutableListOf()),
+        EventEntitiesHandler(),
+        EventUserHandler(PointsHandler()),
+    )
 
     fun saveCurrentEvent() {
         supplyAsync {
