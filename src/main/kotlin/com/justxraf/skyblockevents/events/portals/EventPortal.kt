@@ -192,7 +192,7 @@ class EventPortal(
                     val requirementHologram = hologramManager.getHologram(
                         "${event.uniqueId}_${portalType.name.lowercase()}_portal_hologram_requirement_$locale")
                         .getOrNull()
-                    if(hologram != null) hologramManager.removeHologram(requirementHologram)
+                    if(requirementHologram != null) hologramManager.removeHologram(requirementHologram)
                 }
             }
 
