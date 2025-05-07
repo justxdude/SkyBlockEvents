@@ -26,7 +26,7 @@ class EntityKillListener : Listener {
 
         if(activeMob == null) return
 
-        val eventUser = currentEvent.eventUserHandler.getUser(killer.uniqueId)
+        val eventUser = currentEvent.eventUserHandler.getUser(killer.uniqueId) ?: return
         eventUser.addPoints(getReward(entity.type, activeMob.level))
         eventUser.mobsKilled += 1
     }

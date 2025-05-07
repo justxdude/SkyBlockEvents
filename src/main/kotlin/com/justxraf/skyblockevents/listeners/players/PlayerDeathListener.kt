@@ -27,7 +27,7 @@ class PlayerDeathListener : Listener {
         player.playSound(player.location, Sound.ENTITY_VILLAGER_DEATH, 3F, 1F)
 
         val user = currentEvent.eventUserHandler.getUser(player.uniqueId)
-        user.deaths += 1
+        user?.deaths += 1
 
         player.teleport(currentEvent.spawnLocation)
     }

@@ -72,7 +72,7 @@ object EventAdminQuestSubCommand {
             if(sessionEvent.quests.isNullOrEmpty()) sessionEvent.quests = mutableListOf()
 
             val id = args[2].toInt()
-            val quest = questsManager.getQuestBy(id)
+            val quest = questsManager.getQuestTitleBy(id)
 
             if(quest == null) {
                 player.sendColoured("&cNie znaleziono zadania o podanym id! Użyj /event quests add <id>.")

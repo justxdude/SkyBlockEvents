@@ -91,7 +91,7 @@ class EventPortal(
             EventType.NETHER -> "nether".localeEventsTranslation(locale)
             EventType.FISHING -> "fishing".localeEventsTranslation(locale)
         },
-        "active.players".localeEventsTranslation(locale, event.eventUserHandler.users.size.toString()),
+        "active.players".localeEventsTranslation(locale, event.eventUserHandler.users.filter { it.value.isActive }.size.toString()),
         if (event.eventUserHandler.users.isEmpty()) "nobody.joined".localeEventsTranslation(locale)
         else if (event.eventUserHandler.users.size == 1) "joined.one.player".localeEventsTranslation(locale)
         else "joined.in.total".localeEventsTranslation(locale, event.eventUserHandler.users.size.toString()),
@@ -209,7 +209,7 @@ class EventPortal(
 
         val (pos1, pos2) = cuboid ?: throw NullPointerException("Cuboid in the Event Portal is null!")
         val world = BukkitAdapter.adapt(pos1.world)
-        val region = CuboidRegion(world, BlockVector3.at(pos1.x + 0.5, pos1.y, pos1.z + 0.5), BlockVector3.at(pos2.x + 0.5, pos2.y, pos2.z - 1.5))
+        val region = CuboidRegion(world, BlockVector3.at(pos1.x, pos1.y, pos1.z), BlockVector3.at(pos2.x, pos2.y, pos2.z))
 
         WorldEdit.getInstance().newEditSessionBuilder().world(world).build().use {
             val airBlock = BukkitAdapter.adapt(org.bukkit.Material.AIR.createBlockData())

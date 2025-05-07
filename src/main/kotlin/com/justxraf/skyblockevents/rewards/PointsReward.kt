@@ -18,7 +18,7 @@ class PointsReward(
         val currentEvent = eventsManager.currentEvent
 
         val eventUserHandler = currentEvent.eventUserHandler
-        val eventUser = eventUserHandler.getUser(user.uniqueId)
+        val eventUser = eventUserHandler.getUser(user.uniqueId) ?: return
 
         eventUser.addPoints(amount)
 

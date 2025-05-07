@@ -12,7 +12,9 @@ class PlayerMoveListener : Listener {
         val currentEvent = eventsManager.currentEvent
         val eventUserHandler = currentEvent.eventUserHandler
 
+        if(currentEvent.spawnLocation.world != event.player.world) return
+
         val eventUser = eventUserHandler.getUser(event.player.uniqueId)
-        eventUser.lastCache = System.currentTimeMillis()
+        eventUser?.lastCache = System.currentTimeMillis()
     }
 }

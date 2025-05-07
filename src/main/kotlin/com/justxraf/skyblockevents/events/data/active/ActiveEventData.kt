@@ -39,10 +39,10 @@ data class ActiveEventData(
                 RegenerativeMaterialsHandler(eventData.regenerativeMaterials ?: mutableListOf()),
                 EventEntitiesHandler(eventData.eventEntityCuboids ?: ConcurrentHashMap()),
                 EventUserHandler(PointsHandler(), eventUsers.entries.associateTo(ConcurrentHashMap()) { it.key to it.value.toEventUser() }),
-                uuid,
+                eventData.portals ?: ConcurrentHashMap(),
+                eventData.spawnRegion!!,
                 eventData.requiredLevel,
-                eventData.portals,
-                eventData.spawnRegion,
+                uuid,
                 eventData.questNPCLocation,
                 eventData.quests,
             )

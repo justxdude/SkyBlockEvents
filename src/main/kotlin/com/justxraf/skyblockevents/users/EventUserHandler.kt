@@ -16,9 +16,10 @@ import com.justxraf.networkapi.util.sendColouredActionBar
 import com.justxraf.questscore.api.UserQuestCancelEvent
 import com.justxraf.questscore.users.QuestUser
 import com.justxraf.questscore.users.QuestUserLoadReason
-import com.justxraf.questscore.users.UsersManager
-import com.justxraf.skyblockevents.components.ComponentsManager
+import com.justxraf.questscore.users.QuestUsersManager
+import com.justxraf.skyblockevents.SkyBlockEvents
 import com.justxraf.skyblockevents.events.Event
+import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.users.points.PointsHandler
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.justxraf.skyblockevents.util.toItemStack
@@ -39,22 +40,27 @@ class EventUserHandler(
     lateinit var event: Event
     var disabledNotifications: MutableList<UUID> = mutableListOf()
 
-    private var notificationsTask: BukkitTask? = null
-    private var activityCheckTask: BukkitTask? = null
+    var notificationsTask: BukkitTask? = null
+    var activityCheckTask: BukkitTask? = null
 
     lateinit var playerRewards: Map<Int, List<Int>>
     lateinit var islandRewards: List<Int>
 
-    private val components by lazy { ComponentsManager.instance }
+    private val eventsManager by lazy { EventsManager.instance }
 
-    fun setup(event: Event) {
+    fun setup(event: Event, shouldClear: Boolean) {
+        if(shouldClear) {
+            users.clear()
+            disabledNotifications.clear()
+        }
+
         this.event = event
         pointsHandler.setup(this)
 
         clearUsersQuests()
 
         stopTasks()
-        runTasks()
+        runTasks(event)
 
         loadRewards()
         disabledNotifications = mutableListOf()
@@ -65,13 +71,14 @@ class EventUserHandler(
 
         pointsHandler.reload(this)
         loadRewards()
+
         stopTasks()
-        runTasks()
+        runTasks(event)
 
         disabledNotifications = mutableListOf()
     }
 
-    fun end() {
+    fun end(event: Event) {
         clearUsersQuests()
         teleportActiveUsers()
         giveRewards()
@@ -158,6 +165,8 @@ class EventUserHandler(
 
         val topPlayers = pointsHandler.getTopPlayers().take(3)
 
+        if(topPlayers.isEmpty()) return
+
         topPlayers.forEach { (user, array) ->
             val rewards = playerRewards[array[0]]?.mapNotNull { rewardsHandler.getReward(it) } ?: return@forEach
             rewards.forEach { it.sendRewardToUser(user, true) }
@@ -173,17 +182,27 @@ class EventUserHandler(
         notificationsTask?.cancel()
     }
 
-    fun runTasks() {
+    fun runTasks(event: Event) {
         activityCheckTask = object : BukkitRunnable() {
             override fun run() {
+                if(event.uuid != eventsManager.currentEvent.uuid) {
+                    cancel()
+                    return
+                }
+
                 checkUsers()
             }
-        }.runTaskTimer(components.plugin, 0, 20) // Check every 10 seconds.
+        }.runTaskTimer(SkyBlockEvents.instance, 0, 20) // Check every 10 seconds.
         notificationsTask = object : BukkitRunnable() {
             override fun run() {
+                if(event.uuid != eventsManager.currentEvent.uuid) {
+                    cancel()
+                    return
+                }
+
                 sendNotification()
             }
-        }.runTaskTimer(components.plugin, 0, 20 * 540) // every 5 minutes 540
+        }.runTaskTimer(SkyBlockEvents.instance, 0, 20 * 540) // every 5 minutes 540
     }
 
     private fun sendNotification() {
@@ -195,8 +214,6 @@ class EventUserHandler(
                     && user.getFlagBoolean(UserSettingsFlag.ALLOW_EVENT_NOTIFICATIONS)
                     && !disabledNotifications.contains(it.uniqueId)
         }.forEach { player ->
-            if (disabledNotifications.contains(player.uniqueId)) return@forEach
-
             player.asAudience().sendMessage(
                 "event.is.on".translateComponentWithClickEvent(
                     player,
@@ -259,7 +276,7 @@ class EventUserHandler(
     private fun clearUsersQuests() { // Removes the same quests which were finished previously.
         val availableQuests = event.quests ?: return
 
-        val usersManager = UsersManager.instance
+        val usersManager = QuestUsersManager.instance
         val questUsers = users.mapNotNull { usersManager.getUser(it.key, QuestUserLoadReason.DATA_RETRIEVAL) }
 
         questUsers.forEach { questUser ->
@@ -279,6 +296,7 @@ class EventUserHandler(
             EventStatistic.BLOCKS_MINED -> users.entries.sumOf { it.value.blocksMined }
             EventStatistic.POINTS_EARNED -> users.entries.sumOf { it.value.getPoints() }
             EventStatistic.QUESTS_FINISHED -> users.entries.sumOf { it.value.questsFinished.sum() }
+            EventStatistic.DEATHS -> users.entries.sumOf { it.value.deaths }
             EventStatistic.ISLANDS_PARTICIPATED -> pointsHandler.islands.size
             EventStatistic.PLAYERS_PARTICIPATED -> users.size
         }
@@ -290,25 +308,24 @@ class EventUserHandler(
                 EventStatistic.BLOCKS_MINED -> user.blocksMined
                 EventStatistic.POINTS_EARNED -> user.getPoints()
                 EventStatistic.QUESTS_FINISHED -> user.questsFinished.sum()
+                EventStatistic.DEATHS -> user.deaths
                 else -> 0
             }
         }
+    fun addUser(key: UUID): EventUser {
+        var user = getUser(key) ?: EventUser(key)
+        users[key] = user
 
-    fun getUser(key: UUID): EventUser {
-        var user = users[key]
-        if(user == null) {
-            println("User is null, creating new one!")
-            user = EventUser(key)
-            users[key] = user
-        }
         return user
     }
+    fun getUser(key: UUID): EventUser? = users[key]
 
     fun teleport(player: Player) {
         player.teleport(event.spawnLocation)
         if(!users.contains(player.uniqueId)) {
             player.sendColouredActionBar("joined.event".eventsTranslation(player, event.name))
-            val u = getUser(player.uniqueId)
+            addUser(player.uniqueId)
+
             if(event.description.size != 1)
                 event.description.forEach { player.sendColoured(it) }
         } else {

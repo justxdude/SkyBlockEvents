@@ -49,20 +49,17 @@ object EventAdminCreateSubCommand {
                 type.getFormattedName(),
                 lastIP + 1,
                 type,
+                mutableListOf(),
+                player.location,
                 0,
-                0,
-                mutableListOf(""),
-                location,
-                10
             )
-            else -> EventData(type.getFormattedName(),
+            else -> EventData(
+                type.getFormattedName(),
                 lastIP + 1,
                 type,
+                mutableListOf(),
+                player.location,
                 0,
-                0,
-                mutableListOf(""),
-                location,
-                10
             )
 
         }

@@ -18,7 +18,7 @@ class QuestFinishListener : Listener {
         if(!quests.contains(event.quest.uniqueId)) return
         val eventUserHandler = currentEvent.eventUserHandler
 
-        val user = eventUserHandler.getUser(event.user.uniqueId)
+        val user = eventUserHandler.getUser(event.user.uniqueId) ?: return
         user.questsFinished += event.quest.uniqueId
     }
 }

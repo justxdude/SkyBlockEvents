@@ -43,8 +43,8 @@ class PlayerFishingListener : Listener {
         val player = event.player
         val currentEvent = eventsManager.currentEvent
 
-//        if(currentEvent.eventType != EventType.FISHING) return
-//        if(!listenersManager.doChecks(player.location, currentEvent.spawnLocation)) return
+        if(currentEvent.eventType != EventType.FISHING) return
+        if(!listenersManager.doChecks(player.location, currentEvent.spawnLocation)) return
 
         val item = drop.random()
 

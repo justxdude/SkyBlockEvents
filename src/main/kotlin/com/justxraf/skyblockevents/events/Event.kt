@@ -2,16 +2,11 @@ package com.justxraf.skyblockevents.events
 
 import com.justxdude.islandcore.islands.Island
 import com.justxraf.networkapi.util.sendColoured
-import com.justxraf.networkapi.util.sendColouredActionBar
-import com.justxraf.questscore.quests.quest.FinishedQuest
 import com.justxraf.questscore.users.QuestUserLoadReason
-import com.justxraf.questscore.users.UsersManager
+import com.justxraf.questscore.users.QuestUsersManager
 import com.justxraf.skyblockevents.SkyBlockEvents
-import com.justxraf.skyblockevents.components.ComponentsManager
-import com.justxraf.skyblockevents.events.data.EventData
 import com.justxraf.skyblockevents.events.data.FinishedEvent
 import com.justxraf.skyblockevents.events.data.active.ActiveEventData
-import com.justxraf.skyblockevents.events.data.user.EventUserData
 import com.justxraf.skyblockevents.events.entities.EventEntitiesHandler
 import com.justxraf.skyblockevents.events.portals.EventPortal
 import com.justxraf.skyblockevents.events.portals.EventPortalType
@@ -20,7 +15,6 @@ import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHand
 import com.justxraf.skyblockevents.translations.SkyBlockEventsResourcesManager
 import com.justxraf.skyblockevents.users.EventStatistic
 import com.justxraf.skyblockevents.users.EventUserHandler
-import com.justxraf.skyblockevents.util.eventsTranslation
 import com.justxraf.skyblockevents.util.getEndOfDayMillis
 import com.justxraf.skyblockevents.util.getRankColor
 import com.justxraf.skyblockevents.util.isInCuboid
@@ -33,11 +27,9 @@ import de.oliver.fancyholograms.api.data.property.Visibility
 import de.oliver.fancyholograms.api.hologram.Hologram
 import de.oliver.fancynpcs.api.FancyNpcsPlugin
 import de.oliver.fancynpcs.api.NpcData
-import kotlinx.coroutines.Runnable
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
-import java.awt.ActiveEvent
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.map
@@ -59,45 +51,48 @@ open class Event(
     open var eventEntitiesHandler: EventEntitiesHandler,
     open var eventUserHandler: EventUserHandler,
 
+    var portals: ConcurrentHashMap<EventPortalType, EventPortal>,
+    var spawnRegion: Pair<Location, Location>,
+
+    var requiredLevel: Int,
+
     open var uuid: UUID = UUID.randomUUID(),
-
-    var requiredLevel: Int = 0,
-    var portals: ConcurrentHashMap<EventPortalType, EventPortal>? = null,
-
-    open var spawnRegion: Pair<Location, Location>? = null,
     open var questNPCLocation: Location? = null,
 
     open var quests: MutableList<Int>? = null,
 ) {
+    lateinit var eventPhase: EventPhase
 
     open fun reload() {
-        end()
-        start()
+        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
+            eventPhase = EventPhase.STARTED
 
-//        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-//            portals?.values?.forEach { portal ->
-//                portal.event = this
-//                portal.end(PortalRemovalReason.RESTART)
-//
-//                portal.setup()
-//            }
-//
-//            removeQuestNPCHologram()
-//
-//            eventEntitiesHandler.reload(this)
-//            regenerativeMaterialsHandler.reload(this)
-//            eventUserHandler.reload(this)
-//
-//            spawnQuestNPC()
-//        }, 30)
+            portals.values.forEach { portal ->
+                portal.event = this
+                portal.end(PortalRemovalReason.RESTART)
+
+                portal.setup()
+            }
+
+            removeQuestNPCHologram()
+
+            eventEntitiesHandler.reload(this)
+            regenerativeMaterialsHandler.reload(this)
+            eventUserHandler.reload(this)
+
+            spawnQuestNPC()
+        }, 30)
     }
     open fun start() {
-        eventUserHandler.setup(this)
+        eventPhase = EventPhase.STARTING
+
+        eventUserHandler.setup(this, false)
 
         startedAt = System.currentTimeMillis()
         endsAt = getEndOfDayMillis(System.currentTimeMillis())
 
-        portals?.values?.forEach { portal ->
+        portals.values.forEach { portal ->
+            portal.event = this
             portal.setup()
         }
         spawnQuestNPC()
@@ -108,12 +103,15 @@ open class Event(
         Bukkit.getOnlinePlayers().forEach {
             it.sendColoured("New event started...")
         }
+        eventPhase = EventPhase.STARTED
     }
     open fun end() {
+        eventPhase = EventPhase.ENDED
+
         finish()
         processFinishedEvent()
 
-        portals?.values?.forEach { portal ->
+        portals.values.forEach { portal ->
             portal.end(PortalRemovalReason.END)
         }
 
@@ -122,12 +120,12 @@ open class Event(
 
         eventEntitiesHandler.stop()
         regenerativeMaterialsHandler.stop()
-        eventUserHandler.end()
+        eventUserHandler.end(this)
     }
     /*
     Statistics:
     All Points Earned
-    Amount of players that participated
+    Number of players that participated
     Amount of islands that participated
     Mobs Killed
     Blocks Mined
@@ -137,13 +135,20 @@ open class Event(
     fun processFinishedEvent() {
         val eventsManager = EventsManager.instance
         val finishedQuest = FinishedEvent(eventsManager.finishedEvents.maxOfOrNull { it.key } ?: 1,
-            uuid ?: UUID.randomUUID(), eventUserHandler.pointsHandler.islandsLeaderboard,
+            uuid, eventUserHandler.pointsHandler.islandsLeaderboard,
             eventUserHandler.users.values.map { it.toData() }.associateBy { it.uniqueId }, startedAt, System.currentTimeMillis())
 
         eventsManager.finishedEvents.putIfAbsent(finishedQuest.id, finishedQuest)
     }
     open fun finish() {
         val topPlayers = eventUserHandler.pointsHandler.getTopPlayers().take(3)
+
+        if(topPlayers.isEmpty()){
+            Bukkit.getOnlinePlayers().forEach {
+                it.sendColoured("&cRanking pod koniec wydarzenia był pusty, z tego powodu nikt nie otrzymał nagrody.")
+            }
+            return
+        }
 
         val loreLines = buildList {
             topPlayers.forEach { (user, data) ->
@@ -231,7 +236,7 @@ open class Event(
         if(quests == null) quests = mutableListOf()
         if(!quests!!.contains(id))return
 
-        Bukkit.getOnlinePlayers().map { UsersManager.instance.getUser(it.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) }.forEach { user ->
+        Bukkit.getOnlinePlayers().map { QuestUsersManager.instance.getUser(it.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) }.forEach { user ->
             if(user != null) {
                 user.activeQuests.removeIf { it.uniqueId == id }
                 user.givenQuests.remove(id)
@@ -325,22 +330,6 @@ open class Event(
             e.printStackTrace()
         }
     }
-    private fun reloadNPC() {
-        try {
-            val npc = FancyNpcsPlugin.get().npcManager.getNpc("${uniqueId}_event_npc")
-
-            if (npc == null) {
-                spawnQuestNPC()
-                return
-            } else {
-                removeNPC()
-                spawnQuestNPC()
-            }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
     // Holograms
 
     private fun removeQuestNPCHologram() {
@@ -386,15 +375,11 @@ open class Event(
     }
 
     // Regions
-    fun isInSpawnRegion(location: Location): Boolean {
-        if(spawnRegion == null) return false
-        return location.isInCuboid(spawnRegion!!)
-    }
+    fun isInSpawnRegion(location: Location): Boolean = location.isInCuboid(spawnRegion)
+
     fun getPortalAt(location: Location): EventPortal? =
-        portals?.values?.firstOrNull {
-            it.isIn(location)
-        }
-    fun normalPortalLocation(): Location? = portals?.values?.firstOrNull { it.portalType == EventPortalType.NORMAL }?.centre
+        portals.values.firstOrNull { it.isIn(location) }
+    fun normalPortalLocation(): Location? = portals.values.firstOrNull { it.portalType == EventPortalType.NORMAL }?.centre
 
     fun toData() = ActiveEventData(
         uniqueId,

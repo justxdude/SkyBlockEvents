@@ -1,7 +1,7 @@
 package com.justxraf.skyblockevents.users.points
 
 import com.justxdude.islandcore.islands.Island
-import com.justxdude.islandcore.islands.islandmanager.IslandManager
+import com.justxdude.islandcore.islands.managers.IslandManager
 import com.justxdude.skyblockapi.user.User
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.skyblockevents.components.ComponentsManager
@@ -91,6 +91,8 @@ class PointsHandler() {
         return list.sortedBy { it.second[0] }
     }
     fun getTopPlayers(): List<Pair<User, Array<Int>>> {
+        if(playersLeaderboard.isNullOrEmpty()) return listOf()
+
         val topPlayers = playersLeaderboard.take(10)
         var pos = 1
         val list: MutableList<Pair<User, Array<Int>>> = mutableListOf()

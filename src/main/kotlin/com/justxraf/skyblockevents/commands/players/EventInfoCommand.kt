@@ -1,16 +1,15 @@
 package com.justxraf.skyblockevents.commands.players
 
 import com.justxdude.islandcore.utils.toLocationString
-import com.justxdude.skyblockapi.user.UserExtensions.asPlayer
 import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.networkapi.commands.Command
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.networkapi.util.Utils.toDate
 import com.justxraf.networkapi.util.asAudience
 import com.justxraf.skyblockevents.events.EventsManager
+import com.justxraf.skyblockevents.events.portals.EventPortalType
 import com.justxraf.skyblockevents.util.eventsTranslation
 import com.justxraf.skyblockevents.util.translateComponentWithClickEvent
-import gg.flyte.twilight.string.translate
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 
@@ -25,7 +24,7 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
             player.sendColoured("wrong.amount.of.arguments".eventsTranslation(player, usage))
             return false
         }
-        val subCommands = listOf("leaderboard", "rewards")
+        val subCommands = listOf("leaderboard", "rewards", "nagrody", "ranking")
         if(!subCommands.contains(args[0].eventsTranslation(player))) {
             player.sendColoured("wrong.usage".eventsTranslation(player, usage))
             return false
@@ -36,9 +35,9 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
 
     override fun execute(player: Player, args: Array<String>) {
         if(args.size == 1) {
-            when(args[0].eventsTranslation(player)) {
-                "leaderboard" -> EventLeaderboardSubCommand.execute(player)
-                "rewards" -> EventRewardsSubCommand.execute(player)
+            when(args[0]) {
+                "leaderboard", "ranking" -> EventLeaderboardSubCommand.execute(player)
+                "rewards", "nagrody" -> EventRewardsSubCommand.execute(player)
             }
             return
         }
@@ -46,7 +45,7 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
 
         val currentEvent = eventsManager.currentEvent
         val joined = currentEvent.eventUserHandler.users.size
-        val users = currentEvent.eventUserHandler.users.size
+        val users = currentEvent.eventUserHandler.users.filter { it.value.isActive }.size
         val message = mutableListOf<String>()
 
         val user = player.asUser() ?: return
@@ -66,8 +65,10 @@ class EventInfoCommand : Command("wydarzenie", arrayOf("wydarzenia", "wyd", "eve
             }",
             "ends.in".eventsTranslation(player, currentEvent.endsAt.toDate()),
             "&c",
-            if(user.level < currentEvent.requiredLevel) "have.to.achieve.level.to.unlock" else "join.at"
-                .eventsTranslation(player, currentEvent.normalPortalLocation()?.toLocationString() ?: ""),
+            if(user.level < currentEvent.requiredLevel) "have.to.achieve.level.to.unlock".eventsTranslation(player)
+            else "join.at".eventsTranslation(player, currentEvent.portals.values.first { it.portalType ==
+                EventPortalType.NORMAL }.centre.toLocationString()
+                .eventsTranslation(player, currentEvent.normalPortalLocation()?.toLocationString() ?: "")),
             "&c",
             "${if(user.level < currentEvent.requiredLevel) "&c" else "&9" }&m-".repeat(30),
         )

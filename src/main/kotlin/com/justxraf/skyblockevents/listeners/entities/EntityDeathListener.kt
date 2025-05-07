@@ -19,8 +19,6 @@ class EntityDeathListener : Listener {
 
     @EventHandler
     fun onEntityMove(event: EntityMoveEvent) {
-        if(event.entity.location.y > .0) return
-
         val currentEvent = eventsManager.currentEvent
         val world = currentEvent.spawnLocation.world
 
@@ -28,6 +26,7 @@ class EntityDeathListener : Listener {
         val entityWorld = entity.world
 
         if(world != entityWorld) return
+        if(event.entity.location.y > .0) return
 
         Bukkit.getPluginManager().callEvent(EntityDeathEvent(entity, DamageSource.builder(DamageType.FALL).build(), mutableListOf()))
         entity.remove()

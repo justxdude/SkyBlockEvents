@@ -22,7 +22,7 @@ class PlayerQuitListener : Listener {
         val currentEvent = eventsManager.currentEvent
 
         if(!currentEvent.eventUserHandler.users.contains(player.uniqueId)) return
-        val user = currentEvent.eventUserHandler.getUser(player.uniqueId)
+        val user = currentEvent.eventUserHandler.getUser(player.uniqueId) ?: return
         user.isActive = false
         user.player = null
     }

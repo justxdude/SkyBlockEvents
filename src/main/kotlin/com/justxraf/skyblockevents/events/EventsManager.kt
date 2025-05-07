@@ -24,6 +24,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import java.util.*
 import java.util.concurrent.CompletableFuture.supplyAsync
+import java.util.concurrent.ConcurrentHashMap
 
 class EventsManager(private val componentsManager: ComponentsManager) {
     lateinit var currentEvent: Event
@@ -39,37 +40,46 @@ class EventsManager(private val componentsManager: ComponentsManager) {
     private val finishedEventsCollection = database.getCollection("finished_events")
     private val gson = SkyblockAPI.instance.database.gson
 
+    var eventsManagerStatus: EventsManagerStatus = EventsManagerStatus.RESTARTING
+
     private fun init() {
         events = loadEventsData() ?: mutableMapOf()
         finishedEvents = loadFinishedEvents() ?: mutableMapOf()
 
         val existingEvent = loadCurrentEvent()
-        if(existingEvent == null) generateNewEvent() else currentEvent = existingEvent
+        if(existingEvent == null) {
+            generateNewEvent()
+        } else currentEvent = existingEvent
 
         if(shouldFinish()) {
+            eventsManagerStatus = EventsManagerStatus.RESTARTING
+
             currentEvent.finish()
             generateNewEvent()
-        }
-        else currentEvent.reload()
+        } else currentEvent.reload()
 
-        Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
-            Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
-                saveCurrentEvent()
-            }, 0L, 20 * 5)
+        Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
+            if(eventsManagerStatus == EventsManagerStatus.RESTARTING) return@Runnable
 
-            Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
-                if (shouldFinish()) {
-                    currentEvent.end()
+            saveCurrentEvent()
+        }, 0L, 20 * 5)
 
-                    generateNewEvent()
-                } else eventTimeCheck()
-            }, 0L, 20)
+        Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
+            if(eventsManagerStatus == EventsManagerStatus.RESTARTING) return@Runnable
 
-            Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
-                events.saveToDatabase(eventsCollection)
-                finishedEvents.saveToDatabase(finishedEventsCollection)
-            }, 0L, 20 * 20)
-        }, 20 * 10)
+            if (shouldFinish()) {
+                currentEvent.end()
+
+                generateNewEvent()
+            } else eventTimeCheck()
+        }, 0L, 20)
+
+        Bukkit.getScheduler().runTaskTimer(componentsManager.plugin, Runnable {
+            if(eventsManagerStatus == EventsManagerStatus.RESTARTING) return@Runnable
+
+            events.saveToDatabase(eventsCollection)
+            finishedEvents.saveToDatabase(finishedEventsCollection)
+        }, 0L, 20 * 20)
 
     }
 //    fun processFinishedEvent(finishedEvent: FinishedEvent) {
@@ -196,16 +206,21 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             null
         }
     }
-    private fun generateNewEvent() {
+    fun generateNewEvent() {
+        eventsManagerStatus = EventsManagerStatus.RESTARTING
+
         Bukkit.getScheduler().runTaskLater(SkyBlockEvents.instance, Runnable {
             if (events.isEmpty()) currentEvent = getFakeEvent()
-            val event = events.values.random().fromData()
+            val event = events.values.filter { it.canBeActivated() }.random().fromData()
 
             event.startedAt = System.currentTimeMillis()
-            event.start()
 
             currentEvent = event
             saveCurrentEvent()
+
+            event.start()
+
+            eventsManagerStatus = EventsManagerStatus.STARTED
         }, 20 * 30)
     }
 
@@ -220,6 +235,10 @@ class EventsManager(private val componentsManager: ComponentsManager) {
         RegenerativeMaterialsHandler(mutableListOf()),
         EventEntitiesHandler(),
         EventUserHandler(PointsHandler()),
+        ConcurrentHashMap(),
+        Pair( Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0),
+            Location(Bukkit.getWorld("world_spawn")!!, .0, .0, .0)),
+        0
     )
 
     fun saveCurrentEvent() {
@@ -249,7 +268,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             ?.toEvent()
     }
 
-    private fun shouldFinish(): Boolean = System.currentTimeMillis() - currentEvent.endsAt < 0
+    private fun shouldFinish(): Boolean = System.currentTimeMillis() - currentEvent.endsAt > 0
 
 
 //        val zone = ZoneId.of("Europe/Berlin")

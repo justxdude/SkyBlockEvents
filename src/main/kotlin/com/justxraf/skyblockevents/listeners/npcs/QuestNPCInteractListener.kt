@@ -1,26 +1,25 @@
 package com.justxraf.skyblockevents.listeners.npcs
 
+import com.justxdude.skyblockapi.user.UserExtensions.asUser
 import com.justxraf.networkapi.util.sendColoured
 import com.justxraf.questscore.objectives.objective.NPCInteractionObjective
 import com.justxraf.questscore.quests.QuestsManager
-import com.justxraf.questscore.users.QuestUser
 import com.justxraf.questscore.users.QuestUserLoadReason
-import com.justxraf.questscore.users.UsersManager
+import com.justxraf.questscore.users.QuestUser
+import com.justxraf.questscore.users.QuestUsersManager
 import com.justxraf.skyblockevents.components.ComponentsManager
 import com.justxraf.skyblockevents.events.EventsManager
 import com.justxraf.skyblockevents.listeners.ListenersManager
 import com.justxraf.skyblockevents.util.eventsTranslation
 import de.oliver.fancynpcs.api.actions.ActionTrigger
 import de.oliver.fancynpcs.api.events.NpcInteractEvent
-import de.oliver.fancynpcs.api.events.NpcRemoveEvent
-import de.oliver.fancynpcs.api.events.NpcSpawnEvent
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.scheduler.BukkitRunnable
 
 class QuestNPCInteractListener : Listener {
-    private val questUserManager = UsersManager.instance
+    private val questUserManager = QuestUsersManager.instance
     private val questsManager = QuestsManager.instance
 
     private val eventsManager = EventsManager.instance
@@ -69,9 +68,15 @@ class QuestNPCInteractListener : Listener {
         }
 
         val finishedQuests = questUser.finishedQuests.keys
-        val unfinishedQuests = eventQuests.filter { it !in finishedQuests }
+        val unfinishedQuests = eventQuests.filter { finishedQuests.contains(it).not() }
 
-        val number = unfinishedQuests.minOrNull() ?: eventQuests.min()
+        val number = unfinishedQuests.minOrNull()
+        if(number == null) {
+            val messages = listOf("no.more.quests", "no.more.quests.two", "no.more.quests.three")
+            player.sendColoured(messages.random().eventsTranslation(player))
+            return
+        }
+
         playDialogAndGiveQuest(number, questUser, event.player)
     }
     private fun playDialogAndGiveQuest(number: Int, questUser: QuestUser, player: Player) {
@@ -253,7 +258,8 @@ class QuestNPCInteractListener : Listener {
         object: BukkitRunnable() {
             override fun run() {
                 if(counter > (messagesSize - 1)) {
-                    val quest = questsManager.getQuestBy(number) ?: return
+                    val user = player.asUser() ?: return
+                    val quest = questsManager.getQuestBy(number, user) ?: return
                     questUser.giveActiveQuest(quest, false)
 
                     player.sendColoured(description.eventsTranslation(player))

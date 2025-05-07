@@ -1,5 +1,8 @@
 package com.justxraf.skyblockevents.events.data
 
+import com.justxdude.skyblockapi.user.UserExtensions.asUser
+import com.justxraf.questscore.api.UserQuestCancelEvent
+import com.justxraf.questscore.users.QuestUser
 import com.justxraf.skyblockevents.events.Event
 import com.justxraf.skyblockevents.events.EventType
 import com.justxraf.skyblockevents.events.data.user.EventUserData
@@ -12,6 +15,7 @@ import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterial
 import com.justxraf.skyblockevents.events.regenerative.RegenerativeMaterialsHandler
 import com.justxraf.skyblockevents.users.EventUserHandler
 import com.justxraf.skyblockevents.util.isInCuboid
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import java.time.*
@@ -63,18 +67,32 @@ data class EventData(
             spawnLocation,
             regenerativeBlocksManager,
             eventEntitiesHandler,
-            eventUserHandler
+            eventUserHandler,
+            portals ?: ConcurrentHashMap(),
+            spawnRegion!!,
+            requiredLevel,
         )
+        event.questNPCLocation = questNPCLocation
+        event.quests = quests
+
         val questsCopy = quests?.toList()
 
         questsCopy?.forEach {
             event.addQuest(it)
         }
-        portals?.forEach {
-            it.value.event = event
-        }
 
         return event
+    }
+    fun canBeActivated(): Boolean {
+        when {
+            portals == null -> return false
+            spawnRegion == null -> return false
+            questNPCLocation == null -> return false
+            quests == null -> return false
+            eventEntityCuboids == null -> return false
+            regenerativeMaterials == null -> return false
+        }
+        return true
     }
 
     // Entity Cuboids
@@ -120,5 +138,18 @@ data class EventData(
     fun removeRegenerativeMaterial(material: Material) {
         if(regenerativeMaterials.isNullOrEmpty()) return
         regenerativeMaterials?.removeIf { it.material == material }
+    }
+    fun restartQuestsFor(questUser: QuestUser) {
+        if(quests.isNullOrEmpty()) return
+
+        questUser.finishedQuests.filter { quests!!.contains(it.key) }.forEach {
+            questUser.finishedQuests.remove(it.key)
+        }
+        questUser.activeQuests.filter { quests!!.contains(it.uniqueId) }.forEach {
+            questUser.activeQuests.remove(it)
+
+            val user = questUser.uniqueId.asUser() ?: return@forEach
+            Bukkit.getPluginManager().callEvent(UserQuestCancelEvent(user, questUser, it))
+        }
     }
 }

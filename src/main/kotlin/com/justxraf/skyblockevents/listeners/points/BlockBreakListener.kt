@@ -18,7 +18,7 @@ class BlockBreakListener : Listener {
         val player = event.player
         val eventUserHandler = currentEvent.eventUserHandler
 
-        val eventUser = eventUserHandler.getUser(player.uniqueId)
+        val eventUser = eventUserHandler.getUser(player.uniqueId) ?: return
 
         eventUser.addPoints(getReward(event.block.type))
         eventUser.blocksMined += 1

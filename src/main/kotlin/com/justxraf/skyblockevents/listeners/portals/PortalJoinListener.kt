@@ -26,29 +26,35 @@ class PortalJoinListener : Listener {
         val player = event.player
         val location = event.to
 
-        val materialInLocation = location.world?.getBlockAt(player.location.add(.3, .5,.3))?.type ?: return
-        if(materialInLocation != Material.NETHER_PORTAL) return
+        val materialInLocation = location.world?.getBlockAt(player.location.add(.3, .5, .3))?.type ?: return
+        if (materialInLocation != Material.NETHER_PORTAL) return
 
         val portal = eventsManager.currentEvent.getPortalAt(location) ?: return
-        when(portal.portalType) {
+        when (portal.portalType) {
             EventPortalType.EVENT -> SkyblockAPI.instance.spawn.teleport(player, true)
             else -> {
-                if(Bukkit.getOnlinePlayers().isEmpty()) { // TODO do zmiany po testach na 5 (i więcej z czasem)
+                if (Bukkit.getOnlinePlayers().isEmpty()) { // TODO do zmiany po testach na 5 (i więcej z czasem)
                     player.pushIfClose(player.location.clone().add(.2, 1.0, .2), .3, 1.2)
-                    if(!timeChecker.shouldSendMessage(player.uniqueId)) return
+                    if (!timeChecker.shouldSendMessage(player.uniqueId)) return
 
                     player.sendColoured("not.enough.players".eventsTranslation(player))
                     return
                 }
                 val skyBlockUser = player.asUser() ?: return
-                if(skyBlockUser.level < eventsManager.currentEvent.requiredLevel) {
+                if (skyBlockUser.level < eventsManager.currentEvent.requiredLevel) {
                     player.pushIfClose(player.location.clone().subtract(0.2, .0, 0.2), 3.5, 1.2)
 
-                    if(!timeChecker.shouldSendMessage(player.uniqueId)) return
-                    player.sendColoured("not.enough.level".eventsTranslation(player, eventsManager.currentEvent.requiredLevel.toString()))
+                    if (!timeChecker.shouldSendMessage(player.uniqueId)) return
+                    player.sendColoured(
+                        "not.enough.level".eventsTranslation(
+                            player,
+                            eventsManager.currentEvent.requiredLevel.toString()
+                        )
+                    )
                     return
                 }
                 eventsManager.currentEvent.eventUserHandler.teleport(player)
+
             }
         }
     }
