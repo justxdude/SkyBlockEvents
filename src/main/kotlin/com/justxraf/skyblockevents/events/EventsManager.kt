@@ -51,7 +51,7 @@ class EventsManager(private val componentsManager: ComponentsManager) {
             generateNewEvent()
         } else currentEvent = existingEvent
 
-        if(shouldFinish()) {
+        if(shouldFinish() && eventsManagerStatus != EventsManagerStatus.RESTARTING) {
             eventsManagerStatus = EventsManagerStatus.RESTARTING
 
             currentEvent.finish()

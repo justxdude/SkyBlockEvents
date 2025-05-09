@@ -55,8 +55,8 @@ class PointsHandler() {
         val newKeys = users.filter { it.islandId != 0 }.map { it.islandId }.distinct()
 
         newKeys.forEach { islandId ->
-            val island = IslandManager.instance.getIslandViaId(islandId) ?: return@forEach
-            val islandMembers = eventUserHandler.users.filter { island.members.contains(it.key) }
+            val island = IslandManager.instance.getIsland(islandId) ?: return@forEach
+            val islandMembers = eventUserHandler.users.filter { island.memberHandler.isMember(it.key) }
 
             val total = islandMembers.values.sumOf { it.getPoints() }
 
@@ -84,7 +84,7 @@ class PointsHandler() {
 
         topIslands.forEach { (id, points) ->
             // Island > Position > Points
-            val island = IslandManager.instance.getIslandViaId(id) ?: return@forEach
+            val island = IslandManager.instance.getIsland(id) ?: return@forEach
             list += Pair(island, arrayOf(pos, points))
            pos++
         }

@@ -64,7 +64,7 @@ class PlayerJoinListener : Listener {
         val skyBlockUser = player.asUser() ?: return
         val island = skyBlockUser.island
 
-        if(island != null) island.teleportHome(skyBlockUser, false)
+        if(island != null) island.structure?.teleportHome(skyBlockUser, false)
                 else SkyblockAPI.instance.spawn.teleport(player)
 
         val questUser = QuestUsersManager.instance.getUser(player.uniqueId, QuestUserLoadReason.DATA_RETRIEVAL) ?: return
